@@ -222,6 +222,30 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .mg-dot{width:9px;height:9px;border-radius:99px}
 .d-r{background:var(--deg-r)} .d-5{background:var(--deg-5)} .d-x{background:var(--deg-x)} .d-7{background:var(--deg-7)}
 .mg-lock{font-size:10.5px;font-weight:600;color:var(--ink-3);border:1px solid var(--border);border-radius:99px;padding:1px 7px}
+/* 🏠 홈 대시보드 */
+.home{max-width:1180px;margin:0 auto;padding:20px 22px 40px}
+.dash-title{font-size:20px;font-weight:800;margin:4px 0 2px}
+.dash-sub{font-size:13px;color:var(--ink-3);margin-bottom:16px}
+.dash-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.dash-cta{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:16px}
+.cta{border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--surface-2);cursor:pointer;text-align:left;font-family:inherit}
+.cta b{display:block;font-size:15px;color:var(--ink);margin-bottom:4px}
+.cta span{font-size:12.5px;color:var(--ink-2)}
+.cta.primary{border-color:var(--accent);background:var(--accent-soft)}
+.cta.weak{border-color:var(--bad)}
+.cta.star{border-color:var(--warn)}
+.cta:hover{filter:brightness(1.08)}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.dash-grid{grid-template-columns:1fr}}
+.dash-grid .card{margin-top:0}
+.mode-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.mode-table th{text-align:left;color:var(--ink-3);font-weight:600;padding:5px 6px;border-bottom:1px solid var(--border)}
+.mode-table td{padding:6px;border-bottom:1px solid var(--border);color:var(--ink-2)}
+.mode-table td b{color:var(--ink)}
+.acc-good{color:var(--good)!important} .acc-mid{color:var(--warn)!important} .acc-bad{color:var(--bad)!important}
+.weak-item{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--ink-2)}
+.weak-item b{color:var(--ink)}
+.weak-badge{color:var(--bad);white-space:nowrap;font-weight:700}
 /* ⭐ 내 카드 집중 학습 */
 .focus-deck{display:block;width:100%;margin:10px 0 0;padding:10px 14px;border:1px dashed var(--warn);border-radius:10px;background:transparent;color:var(--warn);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-align:left}
 .focus-deck:hover{background:var(--surface)}
@@ -269,6 +293,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <header>
   <h1>🎸 지판 마스터 트레이너</h1>
   <div class="hdr-right">
+    <button class="btn sm" id="btnHome">🏠 홈</button>
     <span class="chip" id="syncChip" title="클라우드 동기화 상태">⚪ 오프라인</span>
     <span class="chip">🔥 연속 <b id="streak">0</b>일</span>
     <button class="btn sm primary" id="btnAccount">👤 로그인</button>
@@ -277,6 +302,9 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <input type="file" id="fileImport" accept=".json" hidden>
   </div>
 </header>
+<!-- ============ HOME · 학습 대시보드 ============ -->
+<div id="viewHome"><div class="home" id="dashBody"></div></div>
+
 <div class="app">
 
 <!-- ============ LEFT · 로드맵 ============ -->
@@ -719,7 +747,8 @@ let S = {
   srsIntro:{},         // "날짜:모드" -> 그날 도입한 신규 카드 수
   srsNewPerDay:20,     // 드릴별 하루 신규 카드 상한
   starred:{},          // ⭐ 모은 카드: key -> true
-  custom:{}            // ✍️ 직접 만든 카드: id -> {q,a}
+  custom:{},           // ✍️ 직접 만든 카드: id -> {q,a}
+  stats:{}             // 학습 통계: "날짜:모드" -> {n,a,h,g,e} (총·다시·어려움·보통·쉬움)
 };
 /* ===== 자동 저장 (localStorage) =====
    상태가 바뀔 때마다 이 기기 브라우저에 자동 저장하고, 열 때 자동 복원한다.
@@ -730,7 +759,7 @@ function fillDefaults(){ // 구버전 데이터 하위 호환: 누락 필드 기
   if(!S.metSound)S.metSound='electronic';if(!S.accentHz)S.accentHz=1500;if(!S.weakHz)S.weakHz=1000;
   if(!S.srs)S.srs={};if(!S.srsIntro)S.srsIntro={};if(!S.srsNewPerDay)S.srsNewPerDay=20;
   if(!S.weeksDone)S.weeksDone={};if(!S.critDone)S.critDone={};if(!S.log)S.log=[];
-  if(!S.starred)S.starred={};if(!S.custom)S.custom={};
+  if(!S.starred)S.starred={};if(!S.custom)S.custom={};if(!S.stats)S.stats={};
 }
 const REV_KEY='guitarLocalRev'; // 마지막 로컬 변경 시각(ms) — 클라우드와 최신본 비교용
 let saveT=null;
@@ -1215,6 +1244,7 @@ function renderOverview(){
 function alignGuide(){
   const drill=document.querySelector('.drill-hero'),guide=document.querySelector('.guide-card');
   if(!drill||!guide)return;
+  if(document.querySelector('.app').style.display==='none')return; // 홈 화면에서는 스킵
   drill.style.marginTop='0px';guide.style.marginTop='0px';
   if(window.innerWidth<=1180)return; // 1단 스택에서는 정렬 불필요
   const diff=Math.round(drill.getBoundingClientRect().top-guide.getBoundingClientRect().top);
@@ -1685,6 +1715,11 @@ function revealCard(){
 window.gradeCard=g=>{
   if(!cur)return;
   const c=srsCard(cur);schedule(c,g,cur);sessDone++;
+  { // 대시보드용 통계 기록 (일별 × 드릴별)
+    const sk=todayNum()+':'+cur.split(':')[0];
+    const st=S.stats[sk]||(S.stats[sk]={n:0,a:0,h:0,g:0,e:0});
+    st.n++;st[['','a','h','g','e'][g]]++;
+  }
   if(g===1){const pos=Math.min(queue.length,3+Math.floor(Math.random()*3));queue.splice(pos,0,cur)}
   beep(g===1?330:720,.1,1);
   updSrsStat();nextCard();saveS();updFocusCnt();
@@ -1829,17 +1864,20 @@ $('btnAddLog').onclick=()=>{
   const m=$('logMemo').value.trim();if(!m)return;
   S.log.unshift({date:today(),phase:'',memo:m});$('logMemo').value='';renderProg();saveS();
 };
+function activeDaySet(){ // 활동한 날(dayNum) = 일지 기록 ∪ 드릴 채점
+  const set=new Set();
+  (S.log||[]).forEach(l=>{const t=Date.parse(l.date);if(!isNaN(t))set.add(Math.floor(t/86400000))});
+  Object.keys(S.stats||{}).forEach(k=>set.add(parseInt(k)));
+  return set;
+}
+function calcStreak(){
+  const set=activeDaySet();let d=todayNum(),streak=0;
+  if(!set.has(d))d--; // 오늘 아직 안 했으면 어제까지 인정
+  while(set.has(d)){streak++;d--}
+  return streak;
+}
 function renderStreak(){
-  const days=[...new Set(S.log.map(l=>l.date))].sort().reverse();
-  let streak=0;let cur=new Date();
-  const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  if(days.length){
-    if(days[0]!==fmt(cur)){cur.setDate(cur.getDate()-1)} // 어제까지 인정
-    for(const d of days){
-      if(d===fmt(cur)){streak++;cur.setDate(cur.getDate()-1)}
-      else break;
-    }
-  }
+  const streak=calcStreak();
   $('streak').textContent=streak;$('kStreak').textContent=streak;
 }
 /* export / import */
@@ -1857,8 +1895,103 @@ $('fileImport').onchange=e=>{
   r.readAsText(f);
 };
 
+/* ================= 홈 대시보드 ================= */
+function keyLabel(key){ // 카드 키 → 사람이 읽는 설명
+  const p=key.split(':'),D=drillOptDefs;
+  try{switch(p[0]){
+    case 'note':return `음 찾기 · ${p[1]}번줄 ${NOTE_F[+p[2]]}`;
+    case 'rnote':return `역방향 · ${p[1]}번줄 ${p[2]}프렛`;
+    case 'read':return `악보 읽기 · ${NOTE_F[(OPEN[+p[1]]+ +p[2])%12]} (${p[1]}번줄 ${p[2]}프렛)`;
+    case 'oct':return `옥타브 · ${NOTE_F[+p[2]]} ${p[1]}→${p[3]}번줄`;
+    case 'interval':return `인터벌 · ${NOTE_F[+p[1]]} + ${D.interval.ivs[+p[2]]}`;
+    case 'chord':return `코드 폼 · ${NOTE_F[+p[1]]}${chordSym(D.chord.quals[+p[3]])} ${D.chord.forms[+p[2]]}`;
+    case 'xform':return `한 음 조작 · ${NOTE_F[+p[1]]} ${XFORM_PAIRS[+p[2]].base}→${XFORM_PAIRS[+p[2]].tgt}`;
+    case 'shell':return `셸 · ${NOTE_F[+p[1]]}${SHELL_Q[+p[2]]}`;
+    case 'slash':return `분수 · ${NOTE_F[+p[1]]} / ${D.slash.bass[+p[2]]}`;
+    case 'triad':return `트라이어드 · ${NOTE_F[+p[1]]}${+p[4]===1?'m':''} ${D.triad.sets[+p[2]]}`;
+    case 'target':return `타겟 톤 · ${NOTE_F[+p[1]]}${chordSym(TQ[+p[2]])}의 ${+p[3]===1?'7도':'3도'}`;
+    case 'dia':return `다이어토닉 · ${NOTE_F[+p[1]]}조 ${DIA_ROMAN[+p[2]]}`;
+    case 'custom':return `내 카드 · ${(S.custom[key.slice(7)]||{}).q||'삭제됨'}`;
+  }}catch(e){}
+  return key;
+}
+function accCls(pct){return pct>=80?'acc-good':pct>=60?'acc-mid':'acc-bad'}
+function renderDash(){
+  renderStreak(); // 헤더 연속일 칩도 함께 갱신
+  const t=todayNum();
+  // 집계
+  let totN=0,totOK=0,todayN=0,todayOK=0;const byMode={};
+  for(const k in S.stats){const [d,m]=k.split(':');const s=S.stats[k];const ok=s.g+s.e;
+    totN+=s.n;totOK+=ok;
+    if(+d===t){todayN+=s.n;todayOK+=ok}
+    const bm=byMode[m]||(byMode[m]={n:0,ok:0});bm.n+=s.n;bm.ok+=ok;
+  }
+  const cardsSeen=Object.keys(S.srs).filter(k=>S.srs[k].seen).length;
+  const weeksDone=Object.values(S.weeksDone).filter(Boolean).length;
+  const weak=Object.keys(S.srs).filter(k=>(S.srs[k].lapses||0)>=3)
+    .sort((a,b)=>(S.srs[b].lapses||0)-(S.srs[a].lapses||0)).slice(0,10);
+  const pct=(ok,n)=>n?Math.round(ok/n*100):null;
+  const tile=(v,l)=>`<div class="kpi"><div class="big">${v}</div><div class="muted">${l}</div></div>`;
+  // 최근 14일 활동 차트
+  let maxN=1;const days=[];
+  for(let i=13;i>=0;i--){const d=t-i;let n=0,ok=0;
+    for(const m in MODE_LABEL){const s=S.stats[d+':'+m];if(s){n+=s.n;ok+=s.g+s.e}}
+    days.push({d,n,ok});if(n>maxN)maxN=n;}
+  const cw=22,ch=70;
+  let chart=`<svg width="100%" viewBox="0 0 ${14*cw+10} ${ch+22}" style="max-width:360px">`;
+  days.forEach((o,i)=>{
+    const h=o.n?Math.max(4,Math.round(o.n/maxN*ch)):2;
+    const a=o.n?o.ok/o.n:0;
+    const col=o.n===0?getCss('--surface-3'):a>=0.8?getCss('--good'):a>=0.6?getCss('--warn'):getCss('--bad');
+    chart+=`<rect x="${i*cw+4}" y="${ch-h+4}" width="${cw-8}" height="${h}" rx="3" fill="${col}"/>`;
+    if(i%2===1){const dt=new Date(o.d*86400000);chart+=`<text x="${i*cw+cw/2}" y="${ch+18}" font-size="8.5" text-anchor="middle" fill="${getCss('--ink-3')}">${dt.getMonth()+1}/${dt.getDate()}</text>`}
+  });
+  chart+='</svg>';
+  // 드릴별 표
+  const rows=Object.keys(byMode).filter(m=>m!=='focus').sort((a,b)=>byMode[b].n-byMode[a].n).map(m=>{
+    const bm=byMode[m];const p=pct(bm.ok,bm.n);
+    const cards=Object.keys(S.srs).filter(k=>k.startsWith(m+':')).length;
+    const wk=Object.keys(S.srs).filter(k=>k.startsWith(m+':')&&(S.srs[k].lapses||0)>=3).length;
+    return `<tr><td><b>${MODE_LABEL[m]||m}</b></td><td>${bm.n}</td><td class="${accCls(p)}"><b>${p}%</b></td><td>${cards}</td><td>${wk?`<span class="acc-bad">${wk}</span>`:'—'}</td></tr>`;
+  }).join('');
+  const wkTitleTxt=CURRICULUM[S.phase].name+' · '+CURRICULUM[S.phase].weeks[S.week].label;
+  $('dashBody').innerHTML=`
+    <div class="dash-title">🎸 나의 학습 대시보드</div>
+    <div class="dash-sub">${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'})}</div>
+    <div class="dash-tiles">
+      ${tile(calcStreak(),'연속 일수 🔥')}
+      ${tile(todayN,'오늘 리뷰')}
+      ${tile(todayN?pct(todayOK,todayN)+'%':'—','오늘 정답률')}
+      ${tile(totN,'총 리뷰')}
+      ${tile(cardsSeen,'학습한 카드')}
+      ${tile(weeksDone+'/17','여정 (주)')}
+    </div>
+    <div class="dash-cta">
+      <button class="cta primary" onclick="goStudy()"><b>▶ 오늘의 학습 계속</b><span>${wkTitleTxt}</span></button>
+      <button class="cta weak" onclick="goWeak()"><b>🔥 틀린 것만 학습</b><span>다시 3회 이상 약점 카드 ${Object.keys(S.srs).filter(k=>(S.srs[k].lapses||0)>=3).length}장</span></button>
+      <button class="cta star" onclick="goFocus()"><b>⭐ 내 카드 집중 학습</b><span>모은 카드·약점·직접 만든 카드</span></button>
+    </div>
+    <div class="dash-grid">
+      <div class="card"><h2>📈 최근 14일 활동</h2><p class="muted" style="margin-bottom:6px">막대 높이=리뷰 수 · 색=정답률(초록 80%↑ · 주황 60%↑ · 빨강 그 미만)</p>${chart}</div>
+      <div class="card"><h2>🥋 드릴별 성과</h2>${rows?`<table class="mode-table"><tr><th>드릴</th><th>리뷰</th><th>정답률</th><th>카드</th><th>약점</th></tr>${rows}</table>`:'<p class="muted">아직 기록이 없습니다 — 오늘의 학습을 시작해 보세요.</p>'}</div>
+      <div class="card"><h2>🔥 자주 틀리는 카드 Top ${weak.length||0}</h2>${weak.length?weak.map(k=>`<div class="weak-item"><span><b>${keyLabel(k)}</b></span><span class="weak-badge">다시 ${S.srs[k].lapses}회</span></div>`).join(''):'<p class="muted">약점 카드가 없습니다. 훌륭합니다!</p>'}</div>
+      <div class="card"><h2>📓 최근 일지</h2>${S.log.length?S.log.slice(0,4).map(l=>`<div class="weak-item"><span>${l.memo}</span><span class="muted" style="white-space:nowrap">${l.date}</span></div>`).join(''):'<p class="muted">일지가 비어 있습니다.</p>'}</div>
+    </div>`;
+}
+function showView(v){
+  document.querySelector('.app').style.display=v==='study'?'grid':'none';
+  $('viewHome').style.display=v==='home'?'block':'none';
+  if(v==='home')renderDash();else queueAlign();
+}
+window.goStudy=()=>showView('study');
+window.goWeak=()=>{dOpt.focus.src=[1];$('focusBtn').onclick();showView('study');
+  const g=$('rxGoal');if(g)g.innerHTML='🔥 집중 학습 · 자주 틀리는 카드만 (예정일 무시)'};
+window.goFocus=()=>{dOpt.focus.src=[0,1,2];$('focusBtn').onclick();showView('study')};
+
 /* ================= init ================= */
 initSession();renderDrillOpts();applyWeekRx(S.phase,S.week);initFB();drawFB();buildNotePad();renderProg();initAuth();updFocusCnt();
+$('btnHome').onclick=()=>showView('home');
+showView('home'); // 첫 화면은 대시보드
 // 메트로놈 컨트롤
 $('mSlider').oninput=function(){setBpm(+this.value)};
 $('mMinus').onclick=()=>setBpm(S.bpm-1);
