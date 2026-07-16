@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기타 지판 마스터 트레이너</title>
+<style>
+:root{
+  --surface:#fcfcfb; --surface-2:#f2f1ee; --surface-3:#e9e8e4;
+  --ink:#0b0b0b; --ink-2:#52514e; --ink-3:#8a8985;
+  --accent:#2a78d6; --accent-soft:#e3eefb;
+  --good:#008300; --warn:#c98500; --bad:#e34948;
+  --deg-r:#2a78d6; --deg-3:#e34948; --deg-5:#1baf7a; --deg-7:#4a3aa7; --deg-x:#eb6834;
+  --border:#dddcd7; --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --surface:#1a1a19; --surface-2:#242423; --surface-3:#2e2e2c;
+    --ink:#ffffff; --ink-2:#c3c2b7; --ink-3:#8a8985;
+    --accent:#3987e5; --accent-soft:#1c3252;
+    --good:#3aa93a; --warn:#eda100; --bad:#e66767;
+    --deg-r:#3987e5; --deg-3:#e66767; --deg-5:#199e70; --deg-7:#9085e9; --deg-x:#d95926;
+    --border:#3a3a38;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important} /* flex/grid display가 hidden 속성을 덮어쓰지 않도록 */
+body{font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',system-ui,sans-serif;background:var(--surface);color:var(--ink);line-height:1.55;padding-bottom:70px}
+.wrap{max-width:860px;margin:0 auto;padding:16px}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:10}
+header h1{font-size:17px;font-weight:700}
+.chip{font-size:12.5px;padding:4px 10px;border-radius:99px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--border)}
+.chip b{color:var(--accent)}
+nav{display:flex;gap:4px;padding:10px 16px 0;max-width:860px;margin:0 auto;flex-wrap:wrap}
+nav button{flex:1;min-width:90px;padding:10px 6px;border:1px solid var(--border);background:var(--surface-2);color:var(--ink-2);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+nav button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:14px}
+.card h2{font-size:15px;margin-bottom:10px}
+.card h3{font-size:13.5px;color:var(--ink-2);margin:12px 0 6px}
+.muted{color:var(--ink-3);font-size:12.5px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+select,input[type=text],input[type=number],textarea{background:var(--surface);border:1px solid var(--border);color:var(--ink);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit}
+textarea{width:100%;resize:vertical}
+.btn{padding:9px 16px;border-radius:9px;border:1px solid var(--border);background:var(--surface-3);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 10px;font-size:12.5px}
+.btn:disabled{opacity:.4;cursor:default}
+/* session */
+.seg{display:flex;gap:10px;padding:10px 12px;border-radius:10px;margin-top:8px;border:1px solid var(--border);background:var(--surface)}
+.seg.now{border-color:var(--accent);background:var(--accent-soft)}
+.seg.done{opacity:.45}
+.seg .t{font-weight:700;font-size:13px;min-width:74px;color:var(--accent)}
+.seg .d{font-size:13.5px;white-space:pre-line}
+.timerbox{padding:6px 0 2px}
+.timer-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.timer-info{display:flex;align-items:baseline;gap:10px;min-width:0}
+.timer{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1}
+.timer.rest{color:var(--accent)}
+.segname{font-size:12.5px;color:var(--ink-2)}
+.seg-head{font-size:13px;color:var(--ink-2);margin:12px 0 2px;font-weight:700}
+.pbar{height:6px;background:var(--surface-3);border-radius:99px;overflow:hidden;margin:12px 0}
+.pbar>div{height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+/* drill */
+.q{font-size:34px;font-weight:800;text-align:center;padding:26px 8px 6px;min-height:76px}
+.q small{display:block;font-size:14px;font-weight:600;color:var(--ink-2);margin-top:6px}
+.ans{text-align:center;font-size:17px;padding:8px;min-height:56px;color:var(--ink-2);white-space:pre-line}
+.ans b{color:var(--accent)}
+.stat{display:flex;gap:14px;justify-content:center;font-size:13px;color:var(--ink-2);padding-top:8px}
+.stat b{font-size:16px;color:var(--ink)}
+.optgrid{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tag{font-size:12.5px;padding:5px 10px;border-radius:99px;border:1px solid var(--border);background:var(--surface);cursor:pointer;user-select:none}
+.tag.on{background:var(--accent);border-color:var(--accent);color:#fff}
+/* fretboard */
+.fbwrap{padding:6px 0}
+#fb{display:block;width:100%;height:auto}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);padding-top:8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:99px;margin-right:4px;vertical-align:-1px}
+/* progress */
+.phasecard{border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px;background:var(--surface)}
+.phasecard h4{font-size:14px}
+.phasecard.pass{border-color:var(--good)}
+.wkrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.wk{font-size:12px;padding:4px 9px;border-radius:7px;border:1px solid var(--border);cursor:pointer;user-select:none}
+.wk.on{background:var(--good);border-color:var(--good);color:#fff}
+.crit{display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-size:13px;cursor:pointer}
+.logitem{padding:9px 0;border-bottom:1px solid var(--border);font-size:13.5px;display:flex;justify-content:space-between;gap:10px}
+.logitem .d{color:var(--ink-3);font-size:12px;white-space:nowrap}
+.banner{font-size:12.5px;color:var(--warn);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-top:10px}
+.tab{display:none}.tab.on{display:block}
+.big{font-size:22px;font-weight:800}
+.kpis{display:flex;gap:10px;flex-wrap:wrap}
+.kpi{flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+.kpi .muted{font-size:11.5px}
+/* ===== 3단 레이아웃 ===== */
+.hdr-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.app{display:grid;grid-template-columns:minmax(0,0.7fr) minmax(0,2.4fr) minmax(0,2fr);gap:16px;max-width:none;margin:0;padding:16px 22px;align-items:start}
+.col{min-width:0;display:flex;flex-direction:column;gap:14px}
+.col>.card{margin-top:0}
+.col-left{position:sticky;top:64px}
+@media (max-width:1180px){
+  .app{grid-template-columns:1fr}
+  .col-left{position:static}
+}
+/* ===== 로드맵 ===== */
+.rm-phase{margin-top:16px}
+.rm-phase:first-child{margin-top:2px}
+.rm-ph-head{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.rm-ph-num{width:21px;height:21px;border-radius:6px;background:var(--surface-3);color:var(--ink-2);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.rm-ph-num.pass{background:var(--good);color:#fff}
+.rm-ph-name{font-size:12.5px;font-weight:700;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rm-ph-prog{font-size:10.5px;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+.rm-week{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;margin-top:3px;cursor:pointer;border:1px solid transparent;font-size:12.5px;color:var(--ink-2);line-height:1.3}
+.rm-week:hover{background:var(--surface-3)}
+.rm-week.cur{border-color:var(--accent);background:var(--accent-soft);color:var(--ink);font-weight:600}
+.rm-wk-label{flex:1;min-width:0}
+.rm-check{width:17px;height:17px;border-radius:99px;border:1.5px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex:0 0 auto;background:transparent;color:#fff;transition:background .12s}
+.rm-check.on{background:var(--good);border-color:var(--good)}
+.rm-crit{font-size:10.5px;color:var(--ink-3);margin:7px 0 0 29px;display:flex;gap:6px;align-items:center;cursor:pointer}
+.rm-crit input{flex:0 0 auto;margin:0}
+.rm-crit.passed{color:var(--good)}
+.rm-crit span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ===== 메트로놈·소리 ===== */
+.metro-bpm{font-size:40px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;line-height:1.1}
+.metro-bpm span.u{font-size:14px;font-weight:600;color:var(--ink-3)}
+.beatdots{display:flex;gap:9px;justify-content:center;align-items:center;margin:10px 0;min-height:18px}
+.beatdots i{width:13px;height:13px;border-radius:99px;background:var(--surface-3);border:1px solid var(--border);transition:transform .05s,background .05s}
+.beatdots i.accent{width:16px;height:16px}
+.beatdots i.on{background:var(--accent);border-color:var(--accent);transform:scale(1.2)}
+.beatdots i.accent.on{background:var(--good);border-color:var(--good)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+/* 메트로놈 컨트롤 */
+.iconbtn{background:transparent;border:none;color:var(--ink-2);font-size:18px;cursor:pointer;padding:2px 4px;line-height:1}
+.iconbtn:hover{color:var(--ink)}
+.metseg-label{font-size:12px;color:var(--ink-2);margin:12px 0 5px;font-weight:600}
+.metseg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.metseg button{padding:9px 4px;border:1px solid var(--border);background:var(--surface);color:var(--ink-2);border-radius:9px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.metseg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.roundbtn{width:44px;height:44px;border-radius:99px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:24px;cursor:pointer;line-height:0.9;font-family:inherit}
+.roundbtn:hover{background:var(--surface-3)}
+.tapbtn{width:66px;height:66px;border-radius:99px;border:none;background:var(--deg-x);color:#fff;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit}
+.tapbtn:active{transform:scale(.93)}
+.btn.stop{background:var(--bad);border-color:var(--bad);color:#fff}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.notepad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.notepad button{padding:10px 0;font-size:13.5px}
+/* ===== Anki 채점 ===== */
+.grades{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.gbtn{padding:8px 4px;border-radius:9px;border:1px solid var(--border);background:var(--surface-3);color:var(--ink);font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit}
+.gbtn small{font-size:11px;font-weight:600;color:var(--ink-3)}
+.gbtn.again{border-color:var(--bad);color:var(--bad)} .gbtn.again small{color:var(--bad)}
+.gbtn.hard{border-color:var(--warn);color:var(--warn)} .gbtn.hard small{color:var(--warn)}
+.gbtn.good{border-color:var(--accent);color:var(--accent)} .gbtn.good small{color:var(--accent)}
+.gbtn.easy{border-color:var(--good);color:var(--good)} .gbtn.easy small{color:var(--good)}
+.gbtn:hover{background:var(--surface)}
+/* 학습 목표·개요 */
+#phaseOverview{margin:2px 0 4px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px}
+.ov-goal{font-size:14px;font-weight:700;color:var(--ink)}
+.ov-desc{font-size:12.5px;color:var(--ink-2);line-height:1.6;margin-top:5px}
+.ov-crit{font-size:12px;color:var(--good);margin-top:6px;font-weight:600}
+/* 드릴 2단: 연습 | 강사 설명 */
+.drill-pair{display:grid;grid-template-columns:1.1fr 0.9fr;gap:16px;align-items:start}
+@media(max-width:1400px){.drill-pair{grid-template-columns:1fr}}
+.drill-main{min-width:0}
+.guide-card{min-width:0}
+.guide-body{font-size:13px;line-height:1.7;color:var(--ink-2)}
+.guide-body .gmode{font-size:15px;font-weight:800;color:var(--accent);margin-bottom:6px}
+.guide-body h4{font-size:12px;color:var(--ink-3);margin:13px 0 4px;font-weight:700;letter-spacing:.02em}
+.guide-body b{color:var(--ink)}
+.guide-body ol{margin:2px 0 0 18px;padding:0}
+.guide-body li{margin:4px 0}
+.guide-body .g-intro{font-size:13px;color:var(--ink);background:var(--surface);border-radius:8px;padding:9px 11px;margin-bottom:2px;line-height:1.6}
+.guide-body .g-tip{margin-top:13px;font-size:12.5px;background:var(--accent-soft);border-radius:8px;padding:9px 11px;color:var(--ink);line-height:1.6}
+/* 깊이 읽기 (Leavitt 에세이) */
+.g-essay{margin-top:13px;border-top:1px solid var(--border);padding-top:9px}
+.g-essay>summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--accent);list-style:none}
+.g-essay>summary::-webkit-details-marker{display:none}
+.g-essay>summary::after{content:'▾';margin-left:6px}
+.g-essay[open]>summary::after{content:'▴'}
+.g-essay p{margin:9px 0 0;font-size:13px;line-height:1.78;color:var(--ink-2)}
+.g-essay p b{color:var(--ink)}
+/* 한 음 조작: 전후 구성음 비교 */
+.xf-cmp{margin:12px auto 2px;display:flex;flex-direction:column;gap:7px;align-items:center;max-width:420px}
+.xf-row{display:flex;align-items:center;gap:12px}
+.xf-name{font-size:14.5px;font-weight:700;min-width:86px;text-align:right;color:var(--ink)}
+.xf-tones{display:flex;gap:7px}
+.xf-pill{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:46px;padding:6px 4px 5px;border-radius:10px;color:#fff;font-size:14px;font-weight:800;line-height:1.15}
+.xf-pill small{font-size:10px;font-weight:700;opacity:.92}
+.xf-pill.chg{box-shadow:0 0 0 2.5px var(--warn)}
+.xf-mid{font-size:12px;color:var(--warn);font-weight:700}
+/* 드릴 카드 히어로 */
+.card.drill-hero{border-left:3px solid var(--accent)}
+.card.drill-hero>h2{font-size:16px}
+/* 오늘의 드릴 경로 (WEEK_RX 처방 전면화) */
+.today-path{background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.tp-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-bottom:8px}
+.tp-loc{font-weight:600;color:var(--ink)}
+.tp-prog b{color:var(--accent)}
+.tp-steps{display:flex;gap:8px;flex-wrap:wrap}
+.tp-step{display:flex;align-items:center;gap:6px;padding:6px 12px 6px 6px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:13px;font-weight:600;color:var(--ink-2);cursor:pointer;font-family:inherit}
+.tp-n{width:20px;height:20px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;background:var(--surface-3);color:var(--ink-2)}
+.tp-step.on{border-color:var(--accent);color:var(--ink)} .tp-step.on .tp-n{background:var(--accent);color:#fff}
+.tp-step.done{opacity:.6} .tp-step.done .tp-n{background:var(--good);color:#fff}
+.tp-goal{font-size:12.5px;color:var(--warn);font-weight:600;margin-top:9px}
+.tp-next{display:inline-block;margin-top:8px;font-size:12px;color:var(--accent);cursor:pointer;text-decoration:none}
+.tp-next:hover{text-decoration:underline}
+/* 자유 연습 (11모드 접기 + 4그룹) */
+.free-modes{margin:10px 0 4px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.free-modes>summary{list-style:none;cursor:pointer;padding:10px 14px;font-size:13px;font-weight:600;color:var(--ink-2)}
+.free-modes>summary::-webkit-details-marker{display:none}
+.free-modes>summary::after{content:'▾';float:right;color:var(--ink-3)}
+.free-modes[open]>summary{border-bottom:1px solid var(--border)}
+.free-modes[open]>summary::after{content:'▴'}
+.free-modes #drillPick{padding:8px 14px 12px}
+.mode-group{margin-top:12px} .mode-group:first-child{margin-top:4px}
+.mg-head{font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.mg-dot{width:9px;height:9px;border-radius:99px}
+.d-r{background:var(--deg-r)} .d-5{background:var(--deg-5)} .d-x{background:var(--deg-x)} .d-7{background:var(--deg-7)}
+.mg-lock{font-size:10.5px;font-weight:600;color:var(--ink-3);border:1px solid var(--border);border-radius:99px;padding:1px 7px}
+/* 우측 도구: 메트로놈·소리 2단 압축 */
+.tool-duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media(max-width:1180px){.tool-duo{grid-template-columns:1fr}}
+.met-adv{margin-top:10px;border-top:1px solid var(--border)}
+.met-adv>summary{cursor:pointer;font-size:12px;color:var(--ink-3);padding:8px 0 2px;list-style:none}
+.met-adv>summary::-webkit-details-marker{display:none}
+.met-adv>summary::after{content:'▾';float:right}
+.met-adv[open]>summary::after{content:'▴'}
+.sound-pad>summary{cursor:pointer;font-size:15px;font-weight:700;list-style:none;color:var(--ink)}
+.sound-pad>summary::-webkit-details-marker{display:none}
+.sound-pad>summary::after{content:'▾';float:right;color:var(--ink-3);font-weight:400}
+.sound-pad[open]>summary::after{content:'▴'}
+.sound-pad .notepad{grid-template-columns:repeat(3,1fr)}
+/* 로드맵 여정 진행 바 */
+.rm-journey{display:flex;align-items:center;gap:8px;margin:6px 0 10px}
+.rm-jbar{flex:1;height:6px;background:var(--surface-3);border-radius:99px;overflow:hidden}
+.rm-jbar>#rmJfill{height:100%;background:var(--good);border-radius:99px;transition:width .3s}
+/* 주차 처방 바 */
+#rxBar:not(:empty){margin-bottom:10px}
+.rxchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.rxchip{font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--ink);cursor:pointer;font-family:inherit;font-weight:600}
+.rxchip.on{background:var(--accent);color:#fff}
+.rxgoal{font-size:12.5px;color:var(--warn);font-weight:600}
+.rxbanner{font-size:12.5px;color:var(--ink-2);background:var(--surface);border:1px dashed var(--border);border-radius:8px;padding:8px 10px}
+.srsstat{display:flex;gap:8px;justify-content:center;padding-top:10px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:99px;border:1px solid var(--border);background:var(--surface);color:var(--ink-2)}
+.pill b{color:var(--ink);font-size:13px}
+.pill.new b{color:var(--accent)} .pill.due b{color:var(--warn)} .pill.done b{color:var(--good)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎸 지판 마스터 트레이너</h1>
+  <div class="hdr-right">
+    <span class="chip" id="syncChip" title="클라우드 동기화 상태">⚪ 오프라인</span>
+    <span class="chip">🔥 연속 <b id="streak">0</b>일</span>
+    <button class="btn sm primary" id="btnAccount">👤 로그인</button>
+    <button class="btn sm" id="btnExport">📥 내보내기</button>
+    <button class="btn sm" id="btnImport">📤 불러오기</button>
+    <input type="file" id="fileImport" accept=".json" hidden>
+  </div>
+</header>
+<div class="app">
+
+<!-- ============ LEFT · 로드맵 ============ -->
+<aside class="col col-left">
+  <div class="card">
+    <h2>🗺️ 학습 로드맵</h2>
+    <div class="rm-journey"><div class="rm-jbar"><div id="rmJfill"></div></div><span class="muted"><b id="rmJdone">0</b>/17주 완료</span></div>
+    <p class="muted" style="margin-bottom:6px;font-size:11.5px">주차를 눌러 학습 시작 · 오른쪽 ○로 완료 표시</p>
+    <div id="roadmap"></div>
+  </div>
+  <div class="card">
+    <div class="kpis">
+      <div class="kpi"><div class="big" id="kStreak">0</div><div class="muted">연속 일수</div></div>
+      <div class="kpi"><div class="big" id="kTotal">0</div><div class="muted">총 세션</div></div>
+      <div class="kpi"><div class="big" id="kWeek">0</div><div class="muted">이번 주</div></div>
+    </div>
+    <div class="banner">💾 기록은 이 기기 브라우저에 <b>자동 저장</b>됩니다. 다른 기기로 옮기거나 백업할 때만 상단 <b>내보내기/불러오기</b>를 쓰세요.</div>
+    <button class="btn ghost sm" style="margin-top:8px;color:var(--bad)" onclick="resetAll()">🗑 기록 전체 초기화</button>
+  </div>
+</aside>
+
+<!-- ============ CENTER · 학습 + 드릴 ============ -->
+<main class="col col-center">
+  <div class="card">
+    <h2 id="wkTitle">—</h2>
+    <div id="phaseOverview"></div>
+    <div class="timerbox">
+      <div class="timer-row">
+        <div class="timer-info">
+          <span class="segname" id="segName">시작 대기</span>
+          <span class="timer" id="timer">10:00</span>
+        </div>
+        <div class="row" style="gap:6px">
+          <button class="btn primary sm" id="btnStart">시작</button>
+          <button class="btn sm" id="btnSkip">다음 ▸</button>
+          <button class="btn ghost sm" id="btnReset">리셋</button>
+        </div>
+      </div>
+      <div class="pbar"><div id="sessBar" style="width:0%"></div></div>
+    </div>
+    <h3 class="seg-head">📋 오늘의 학습 · 60분 배분</h3>
+    <div id="segList"></div>
+    <div id="doneCard" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+      <h3 style="color:var(--good)">✅ 세션 완료 — 한 줄 기록</h3>
+      <p class="muted" style="margin-bottom:8px">오늘 막힌 지점이나 발견을 남기세요. 기록이 진도의 근거가 됩니다.</p>
+      <textarea id="sessMemo" rows="2" placeholder="예: A폼 m7 전환에서 3번줄을 자꾸 놓침"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn primary" id="btnLogSess">기록 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card drill-hero">
+    <h2>🎯 드릴</h2>
+    <div id="rxBar"></div>
+    <div class="drill-main">
+    <details class="free-modes">
+      <summary>🎛️ 자유 연습 · 전체 모드 (원할 때만 펼치기)</summary>
+      <div id="drillPick">
+        <div class="mode-group">
+          <div class="mg-head"><span class="mg-dot d-r"></span>① 지판 익히기 (기초)</div>
+          <div class="optgrid"><span class="tag on" data-d="note">음 찾기</span><span class="tag" data-d="rnote">역방향</span><span class="tag" data-d="oct">옥타브</span><span class="tag" data-d="interval">인터벌</span></div>
+        </div>
+        <div class="mode-group">
+          <div class="mg-head"><span class="mg-dot d-5"></span>② 코드 만들기 <span class="mg-lock">Phase 1↑</span></div>
+          <div class="optgrid"><span class="tag" data-d="chord">코드 폼</span><span class="tag" data-d="xform">한 음 조작</span><span class="tag" data-d="shell">셸</span></div>
+        </div>
+        <div class="mode-group">
+          <div class="mg-head"><span class="mg-dot d-x"></span>③ 트라이어드·구역 <span class="mg-lock">Phase 2↑</span></div>
+          <div class="optgrid"><span class="tag" data-d="triad">트라이어드</span><span class="tag" data-d="slash">분수</span></div>
+        </div>
+        <div class="mode-group">
+          <div class="mg-head"><span class="mg-dot d-7"></span>④ 솔로·화성 <span class="mg-lock">Phase 4↑</span></div>
+          <div class="optgrid"><span class="tag" data-d="target">타겟 톤</span><span class="tag" data-d="dia">다이어토닉</span></div>
+        </div>
+      </div>
+    </details>
+    <div id="drillOpts"></div>
+    <div class="q" id="dq">—</div>
+    <div class="pbar"><div id="dBar" style="width:0%"></div></div>
+    <div class="ans" id="dAns"></div>
+    <div class="row" style="justify-content:center;margin-top:6px" id="dPre">
+      <button class="btn primary" id="dReveal">정답 보기</button>
+      <button class="btn ghost sm" id="dSkip">건너뛰기</button>
+    </div>
+    <div class="grades" id="dGrades" hidden>
+      <button class="gbtn again" data-g="1">다시<small id="g1"></small></button>
+      <button class="gbtn hard" data-g="2">어려움<small id="g2"></small></button>
+      <button class="gbtn good" data-g="3">보통<small id="g3"></small></button>
+      <button class="gbtn easy" data-g="4">쉬움<small id="g4"></small></button>
+    </div>
+    <div class="srsstat">
+      <span class="pill new">신규 <b id="cNew">0</b></span>
+      <span class="pill due">복습 <b id="cDue">0</b></span>
+      <span class="pill done">학습 <b id="cDone">0</b></span>
+    </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📓 연습 일지</h2>
+    <div class="row">
+      <input type="text" id="logMemo" placeholder="메모 (예: 트라이어드 8주차 시작)" style="flex:1">
+      <button class="btn sm" id="btnAddLog">추가</button>
+    </div>
+    <div id="logList" style="margin-top:6px"></div>
+  </div>
+</main>
+
+<!-- ============ RIGHT · 학습 설명 + 도구 ============ -->
+<aside class="col col-right">
+  <div class="card">
+    <h2>🎸 지판 시각화</h2>
+    <div class="row">
+      <select id="fbMode">
+        <option value="nat">자연음 이름</option>
+        <option value="all">전체 음 이름</option>
+        <option value="quiz">퀴즈 (터치로 확인)</option>
+      </select>
+      <select id="fbRoot"><option value="-1">루트 없음</option></select>
+      <select id="fbChord"></select>
+      <button class="btn sm primary" id="btnPlayChord">▶ 코드 듣기</button>
+    </div>
+    <div class="row" style="margin-top:8px;align-items:center;gap:8px">
+      <span class="muted" style="font-size:12.5px">스케일 포지션</span>
+      <button class="btn sm" id="fbPosPrev">◀</button>
+      <span id="fbPosLbl" class="muted" style="min-width:80px;text-align:center;font-size:12.5px">전체 지판</span>
+      <button class="btn sm" id="fbPosNext">▶</button>
+      <button class="btn sm" id="fbPosAll">전체</button>
+    </div>
+    <div class="fbwrap"><svg id="fb" viewBox="0 0 820 240" preserveAspectRatio="xMidYMid meet"></svg></div>
+    <div class="legend" id="fbLegend"></div>
+    <p class="muted" style="margin-top:8px">루트+스케일(예: 메이저 스케일)을 고르고 <b>◀▶로 포지션 창</b>을 옮기면 한 자리(4프렛)에서 치는 운지가 보입니다. <b>음을 누르면 소리가 납니다.</b></p>
+  </div>
+
+  <div class="card guide-card"><div id="drillGuide" class="guide-body"></div></div>
+
+  <div class="tool-duo">
+  <div class="card" id="metroCard">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <h2 style="margin:0">🥁 메트로놈</h2>
+      <button class="iconbtn" id="metGear" title="소리 설정">⚙</button>
+    </div>
+    <div class="beatdots" id="beatDots"></div>
+    <div class="metro-bpm" style="margin-top:6px"><span id="mBpm">100</span> <span class="u">BPM</span></div>
+    <input type="range" id="mSlider" min="20" max="300" value="100">
+    <div class="row" style="justify-content:center;margin-top:10px;align-items:center;gap:14px">
+      <button class="roundbtn" id="mMinus">−</button>
+      <button class="tapbtn" id="mTap">TAP</button>
+      <button class="roundbtn" id="mPlus">+</button>
+    </div>
+    <button class="btn primary" id="mToggle" style="width:100%;margin-top:12px">▶ 시작하기</button>
+    <details class="met-adv">
+      <summary>박자 · 비트 쪼개기</summary>
+      <div class="metseg-label">박자</div>
+      <div class="metseg" id="meterSeg">
+        <button data-m="1/1">1/1</button><button data-m="4/4" class="on">4/4</button><button data-m="3/4">3/4</button><button data-m="6/8">6/8</button>
+      </div>
+      <div class="metseg-label">비트 쪼개기</div>
+      <div class="metseg" id="subSeg">
+        <button data-s="1" class="on">♫</button><button data-s="2">8분</button><button data-s="3">3연음</button><button data-s="4">16분</button>
+      </div>
+    </details>
+  </div>
+
+  <details class="card sound-pad">
+    <summary>🔊 소리 듣기</summary>
+    <p class="muted" style="margin-top:8px">개별 음을 눌러 음정을 익히세요. 현재 옥타브 <b id="octLbl">4</b>.</p>
+    <div class="row" style="margin-top:8px;justify-content:center">
+      <button class="btn sm" id="octDown">옥타브 −</button>
+      <button class="btn sm" id="octUp">옥타브 +</button>
+    </div>
+    <div class="notepad" id="notePad"></div>
+  </details>
+  </div>
+</aside>
+
+</div>
+
+<!-- 계정 / 클라우드 동기화 모달 -->
+<div class="modal-overlay" id="authModal" hidden>
+  <div class="modal">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <h2 style="margin:0">☁️ 클라우드 동기화</h2>
+      <button class="iconbtn" id="authClose">✕</button>
+    </div>
+    <div id="authLoggedOut">
+      <p class="muted" style="margin:10px 0 4px">이메일·비밀번호로 로그인하면 학습 기록이 클라우드에 저장되어 어느 기기에서든 이어집니다.</p>
+      <div class="metseg-label">이메일</div>
+      <input type="text" id="authEmail" placeholder="you@example.com" style="width:100%" autocomplete="username">
+      <div class="metseg-label">비밀번호 (6자 이상)</div>
+      <input type="password" id="authPw" placeholder="••••••" style="width:100%" autocomplete="current-password">
+      <div class="row" style="margin-top:14px;gap:8px">
+        <button class="btn primary" id="authLogin" style="flex:1">로그인</button>
+        <button class="btn" id="authSignup" style="flex:1">회원가입</button>
+      </div>
+    </div>
+    <div id="authLoggedIn" hidden>
+      <p style="margin:12px 0 4px">로그인됨: <b id="authWho"></b></p>
+      <p class="muted" id="authLastSync">마지막 동기화: —</p>
+      <div class="row" style="margin-top:14px;gap:8px">
+        <button class="btn" id="authSyncNow" style="flex:1">지금 동기화</button>
+        <button class="btn ghost" id="authLogout" style="flex:1;color:var(--bad)">로그아웃</button>
+      </div>
+    </div>
+    <p class="muted" id="authMsg" style="margin-top:10px;min-height:18px"></p>
+  </div>
+</div>
+
+<!-- 소리 설정 모달 -->
+<div class="modal-overlay" id="soundModal" hidden>
+  <div class="modal">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <h2 style="margin:0">소리 설정</h2>
+      <button class="iconbtn" id="soundClose">✕</button>
+    </div>
+    <div class="metseg-label">소리 종류</div>
+    <div class="metseg" id="soundSeg" style="grid-template-columns:repeat(2,1fr)">
+      <button data-snd="electronic" class="on">전자음</button><button data-snd="click">비트음</button>
+    </div>
+    <div class="metseg-label">강박 높이 (Hz) — <span id="accHzLbl">1500</span></div>
+    <input type="range" id="accHz" min="800" max="2500" step="50" value="1500">
+    <div class="metseg-label">약박 높이 (Hz) — <span id="weakHzLbl">1000</span></div>
+    <input type="range" id="weakHz" min="400" max="1500" step="50" value="1000">
+    <button class="btn primary" id="soundDone" style="width:100%;margin-top:16px">닫기</button>
+  </div>
+</div>
+<script>
+'use strict';
+/* ================= 데이터 ================= */
+const NOTE_S = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const NOTE_F = ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
+const NATURAL = [0,2,4,5,7,9,11];
+const OPEN = {6:4,5:9,4:2,3:7,2:11,1:4};
+const CHORDS = {
+  '메이저':{iv:[0,4,7],deg:['R','3','5']},
+  '마이너':{iv:[0,3,7],deg:['R','♭3','5']},
+  '7':{iv:[0,4,7,10],deg:['R','3','5','♭7']},
+  'maj7':{iv:[0,4,7,11],deg:['R','3','5','7']},
+  'm7':{iv:[0,3,7,10],deg:['R','♭3','5','♭7']},
+  'sus4':{iv:[0,5,7],deg:['R','4','5']},
+  'sus2':{iv:[0,2,7],deg:['R','2','5']},
+  'add9':{iv:[0,4,7,2],deg:['R','3','5','9']},
+  'dim':{iv:[0,3,6],deg:['R','♭3','♭5']},
+  'aug':{iv:[0,4,8],deg:['R','3','♯5']},
+  '파워(5)':{iv:[0,7],deg:['R','5']},
+  '메이저 스케일':{iv:[0,2,4,5,7,9,11],deg:['R','2','3','4','5','6','7']},
+  '마이너 펜타토닉':{iv:[0,3,5,7,10],deg:['R','♭3','4','5','♭7']}
+};
+const CHORD_ORDER=['메이저','마이너','7','maj7','m7','sus4','sus2','add9','dim','aug','파워(5)','메이저 스케일','마이너 펜타토닉'];
+const DEGCOLOR = d=>{
+  if(d==='R')return getCss('--deg-r');
+  if(d.includes('3'))return getCss('--deg-3');
+  if(d.includes('5'))return getCss('--deg-5');
+  if(d.includes('7'))return getCss('--deg-7');
+  return getCss('--deg-x');
+};
+function getCss(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+
+const CURRICULUM = [
+ {name:'Phase 0 · 지판 음 이름', crit:'6·5번줄 자연음 랜덤 호출 2초 이내 90%↑ (반음·12음은 이후 상시 확장)', weeks:[
+  {label:'1주차 · 6번줄 정복',
+   warm:'크로매틱 워밍업 4프렛 + 어제 틀린 음 복습',
+   main:'① 앵커 심기: 6번줄 0=E 3=G 5=A 7=B 8=C 10=D 12=E\n② [드릴: 랜덤 음 호출, 6번줄] 3초→2초로 단축\n③ 역방향: 아무 프렛 짚고 이름 말하기',
+   app:'파워코드 루트 찾기: "B♭5!" → 6번줄 6프렛. 12키 랜덤 순서로 (음 이름을 소리 내어)',
+   song:'좋아하는 곡 1곡 — 각 코드 루트를 6번줄에서 확인하며 연주'},
+  {label:'2주차 · 5번줄 + 옥타브',
+   warm:'6번줄 랜덤 호출 워밍업 (2초 목표)',
+   main:'① 5번줄 앵커: 0=A 3=C 5=D 7=E 8=F 10=G 12=A\n② 옥타브 셔틀: 6번줄 임의 음→5번줄→4번줄(+2프렛 규칙)에서 같은 음 찾기 — 먼저 자연음만\n③ 계단식 확장: 5번줄 자연음 → 6·5 혼합 자연음 → 마지막에만 반음(샵/플랫) 포함 12음. 한 번에 한 축씩만 넓힐 것.',
+   app:'코드 진행(C–G–Am–F)의 루트를 6번줄과 5번줄 양쪽에서 즉시 짚기',
+   song:'곡의 코드 루트를 5번줄 기준으로 다시 찾으며 연주'}]},
+ {name:'Phase 1 · 폼 해부 (3·5·7도)', crit:'임의 코드(예: B♭m7)를 두 폼 이상에서 5초 이내', weeks:[
+  {label:'3주차 · E폼 해부',
+   warm:'6·5번줄 랜덤 음 호출 5분',
+   main:'① 역할 낭독: F(1프렛 E폼) 한 줄씩 튕기며 "루트–5도–옥타브–3도–5도–루트"\n② 스위치: F→Fm(3번줄 반음↓) / F→Fmaj7(4번줄 1↓) / F→F7(4번줄 2↓) / Fm→Fm7\n③ 바뀐 음의 도수를 말하면서!',
+   app:'같은 4종 변환을 3프렛(G)·5프렛(A)·8프렛(C)에서 반복',
+   song:'곡의 코드를 전부 E폼 바레로만 연주해보기'},
+  {label:'4주차 · A폼 해부',
+   warm:'E폼 4종 변환 복습 (임의 프렛 2곳)',
+   main:'① B♭(1프렛 A폼) 역할 낭독\n② 4종 변환 — 핵심: A폼은 3도가 2번줄, 7도가 3번줄!\n③ [드릴: 코드 변형 호출, A폼]',
+   app:'E폼↔A폼 교차: 같은 코드를 두 폼에서 번갈아 (예: C→8프렛 E폼→3프렛 A폼)',
+   song:'곡을 A폼 위주로 연주'},
+  {label:'5주차 · D폼 + 3폼 통합',
+   warm:'E·A폼 변형 호출 드릴 5분',
+   main:'① D폼(4번줄 루트) 해부\n② 하나의 코드를 3폼 연달아: G → E폼(3f) → D폼(5f부근) → A폼(10f)\n③ 같은 코드가 지판 세 구역에 있음을 확인',
+   app:'곡 진행을 오픈 코드 없이 폼 3개만으로, 최대한 좁은 프렛 범위에서',
+   song:'같은 곡을 낮은 구역/높은 구역 두 버전으로'}]},
+ {name:'Phase 2 · 트라이어드·전위', crit:'임의 트라이어드를 지정 스트링셋·지정 구역에서 10초 이내 구성', weeks:[
+  {label:'6주차 · 1·2·3번줄 (탐색)',
+   warm:'폼 변형 드릴 5분',
+   main:'① C 트라이어드(C·E·G)를 1·2·3번줄에서 만들 수 있는 세 모양을 직접 찾기 (외우기 전에 탐색!)\n② 전위 사다리: 세 형태를 낮은→높은 위치로 연달아, 최저음 도수 말하기\n③ [지판 탭: 루트 C + 메이저로 확인]',
+   app:'찾은 세 모양을 G·D 루트로 평행이동',
+   song:'곡의 코드 1개를 1·2·3번줄 트라이어드로 대체해보기'},
+  {label:'7주차 · 1·2·3번줄 (마이너+진행)',
+   warm:'C 메이저 전위 사다리',
+   main:'① 마이너 버전(C·E♭·G) 세 형태 탐색\n② 메이저↔마이너 전환 (어느 음이 반음 움직이나 관찰)\n③ [드릴: 트라이어드 구역, 1·2·3번줄]',
+   app:'C–F–G–C를 1·2·3번줄, 5~9프렛 안에서만',
+   song:'곡의 후렴을 하이 트라이어드로 반주'},
+  {label:'8주차 · 2·3·4번줄 (접힘 확인)',
+   warm:'1·2·3번줄 사다리 복습',
+   main:'① 2·3·4번줄 트라이어드 3형태 탐색\n② 핵심: G–B 경계(장3도 조율) 때문에 모양이 한 칸 접힘 — 직접 확인\n③ 메이저·마이너 모두',
+   app:'같은 진행을 1·2·3번줄 vs 2·3·4번줄 두 세트로',
+   song:'곡 반주를 중음역 트라이어드로'},
+  {label:'9주차 · 3·4·5번줄 + 5프렛 감옥',
+   warm:'두 스트링셋 사다리',
+   main:'① 3·4·5번줄 3형태\n② "5프렛 감옥": Am–F–C–G를 1~5프렛만/5~9프렛만/9~12프렛만으로 각각\n③ [드릴: 트라이어드 구역, 전체]',
+   app:'임의 4코드 진행 즉석 구역 제한 연주',
+   song:'곡 전체를 한 구역 안에서 완주'}]},
+ {name:'Phase 3 · 확장 코드 (한 음 조작)', crit:'"sus4로!/add9로!/dim으로!" 호출에 3초 내 변형', weeks:[
+  {label:'10주차 · sus4/sus2',
+   warm:'트라이어드 구역 드릴 5분',
+   main:'① D·A·E 오픈에서 sus4↔메이저↔sus2 왕복 (4도→3도 해소를 귀로!)\n② 바레 폼에서 동일 조작 (3도 줄에서 반음↑/온음↓)\n③ 긴장-해소: sus4 2박 → 메이저 2박',
+   app:'sus 곡 분석 (예: Wonderwall) — 5가지 이유(해소/멜로디/공통음/분위기/그루브) 중 무엇인지',
+   song:'아는 곡 한 곳에 sus4→해소 넣어보기'},
+  {label:'11주차 · add9/6',
+   warm:'sus 왕복 각 폼에서',
+   main:'① 트라이어드에 9도·6도 얹는 위치를 각 폼에서 찾기\n② sus2 vs add9 차이(3도 유무)를 소리로 구분 — 청음 비교 필수\n③ [드릴: 코드 변형 호출, add9 포함]',
+   app:'발라드 진행(C–Am–F–G)을 add9로 착색',
+   song:'곡 인트로를 add9 버전으로'},
+  {label:'12주차 · dim/aug',
+   warm:'변형 호출 드릴 (sus·add 포함)',
+   main:'① 5도 조작: ♭5(dim)/♯5(aug)\n② 연결 문맥으로: C→Caug→Am (5도 반음 상행) / C→C♯dim→Dm (경과)\n③ 단독 암기보다 "어디로 가고 싶어하는 소리"인지 듣기',
+   app:'아는 진행 사이에 dim 경과 코드 끼워보기',
+   song:'곡에서 dim/aug를 쓸 수 있는 자리 한 곳 찾기'}]},
+ {name:'Phase 4 · 아르페지오→솔로', crit:'4코드 진행 1분 즉흥 — 매 코드 첫 박 구성음(3도 우선) 착지', weeks:[
+  {label:'13주차 · 아르페지오 (뼈대)',
+   warm:'트라이어드 사다리',
+   main:'① House of the Rising Sun 방식: Am–C–D–F–Am–E 전부 분산화음으로\n② 트라이어드 아르페지오: 3음 블록을 한 음씩, 코드 진행 따라 구역 안에서',
+   app:'같은 진행을 다른 구역에서 아르페지오로',
+   song:'House of the Rising Sun 완주'},
+  {label:'14주차 · 리듬과 선택',
+   warm:'어제 아르페지오 복습',
+   main:'① 구성음 순서 깨기: 높은 음부터/중간부터/건너뛰며\n② 리듬 변형: 길게–짧게–쉼표 섞어 "말하듯"\n③ 한 코드 30초 즉흥: Am 위에서 A·C·E만으로 버티기',
+   app:'2코드(Am–Dm) 위에서 1분 즉흥 (구성음만)',
+   song:'곡 간주 부분에 아르페지오 필 넣기'},
+  {label:'15주차 · 지나가는 음',
+   warm:'한 코드 30초 즉흥',
+   main:'① 구성음 사이 스케일 음 끼우기: A–B–C, C–D–E\n② 이웃음: 타겟(3도) 정하고 위 한 칸 갔다 복귀/아래 한 칸 갔다 복귀\n③ 규칙: 강박에는 반드시 구성음',
+   app:'반주 트랙(루퍼) 위에서 규칙 지키며 즉흥',
+   song:'보컬 멜로디의 빈틈에 응답 프레이즈(필) 넣기'},
+  {label:'16주차 · 타겟 톤',
+   warm:'이웃음 훈련 5분',
+   main:'① 3도 사냥: Am–Dm–E7–Am에서 코드 바뀌는 첫 박에 반드시 새 코드의 3도 착지\n② 7도 착지 버전\n③ 3도→7도 번갈아',
+   app:'다른 진행(C–Am–F–G)으로 동일 훈련',
+   song:'곡 간주에서 코드 따라가는 8마디 솔로 만들기'}]},
+ {name:'Phase 5 · 보이스 리딩 (상시)', crit:'임의 진행에 최소 이동 보이싱 + 베이스 라인 설계', weeks:[
+  {label:'상시 · 연결의 기술',
+   warm:'트라이어드 사다리 + 타겟 톤 5분',
+   main:'① 최소 이동 게임: 코드 전환 시 손가락 이동 거리 합 최소가 되는 보이싱 선택\n② 베이스 라인 설계: C→C/B→Am→Am/G→F (최저음 계단)\n③ 리하모나이즈: 아는 곡 한 코드를 sus·add9·전위로 교체 실험',
+   app:'오늘 곡의 진행을 최소 이동 버전으로 재설계',
+   song:'재설계 버전으로 완주 + 원본과 비교'}]}
+];
+const SEGDEF = [ {key:'warm',name:'워밍업·복습',min:10}, {key:'main',name:'메인 훈련',min:25}, {key:'app',name:'적용 훈련',min:15}, {key:'song',name:'곡 적용·기록',min:10} ];
+
+/* ================= 상태 ================= */
+let S = {
+  phase:0, week:0,
+  weeksDone:{},        // "p-w": true
+  critDone:{},         // phase idx: true
+  log:[],              // {date,phase,memo}
+  bpm:100,             // 메트로놈 BPM (20~300)
+  meter:'4/4',         // 박자: 1/1 · 4/4 · 3/4 · 6/8
+  subdiv:1,            // 비트 쪼개기: 1=♫ 2=8분 3=3연음 4=16분
+  metSound:'electronic', // 소리 종류: electronic(전자음) · click(비트음)
+  accentHz:1500,       // 강박 높이 Hz
+  weakHz:1000,         // 약박 높이 Hz
+  srs:{},              // 카드별 SM-2 상태: key -> {ef,ivl,reps,lapses,due,seen}
+  srsIntro:{},         // 날짜(day number) -> 그날 도입한 신규 카드 수
+  srsNewPerDay:20      // 하루 신규 카드 상한
+};
+/* ===== 자동 저장 (localStorage) =====
+   상태가 바뀔 때마다 이 기기 브라우저에 자동 저장하고, 열 때 자동 복원한다.
+   JSON 내보내기/불러오기는 백업·기기 간 이동용으로 유지. */
+const LS_KEY='guitarTrainerState.v1';
+function fillDefaults(){ // 구버전 데이터 하위 호환: 누락 필드 기본값
+  if(!S.bpm)S.bpm=100;if(!S.meter)S.meter='4/4';if(!S.subdiv)S.subdiv=1;
+  if(!S.metSound)S.metSound='electronic';if(!S.accentHz)S.accentHz=1500;if(!S.weakHz)S.weakHz=1000;
+  if(!S.srs)S.srs={};if(!S.srsIntro)S.srsIntro={};if(!S.srsNewPerDay)S.srsNewPerDay=20;
+  if(!S.weeksDone)S.weeksDone={};if(!S.critDone)S.critDone={};if(!S.log)S.log=[];
+}
+const REV_KEY='guitarLocalRev'; // 마지막 로컬 변경 시각(ms) — 클라우드와 최신본 비교용
+let saveT=null;
+function saveS(){ // 디바운스 자동 저장 (+ 로그인 시 클라우드 푸시 예약)
+  clearTimeout(saveT);
+  saveT=setTimeout(()=>{
+    try{localStorage.setItem(LS_KEY,JSON.stringify(S));localStorage.setItem(REV_KEY,String(Date.now()))}catch(e){}
+    queueCloudPush();
+  },250);
+}
+function loadS(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(raw){S=Object.assign(S,JSON.parse(raw));fillDefaults();}
+  }catch(e){}
+}
+loadS();
+window.addEventListener('beforeunload',()=>{try{clearTimeout(saveT);localStorage.setItem(LS_KEY,JSON.stringify(S))}catch(e){}});
+window.resetAll=()=>{
+  if(!confirm('모든 기록(진도·일지·복습 카드)을 삭제하고 처음부터 시작할까요?\n삭제 전에 내보내기로 백업할 수 있습니다.'))return;
+  try{localStorage.removeItem(LS_KEY)}catch(e){}
+  location.reload();
+};
+
+/* ===== 클라우드 동기화 (Supabase) =====
+   docs/클라우드_동기화_설정.md 의 안내대로 무료 Supabase 프로젝트를 만들고
+   아래 SUPA.url / SUPA.key 두 값만 채우면 활성화된다. 비어 있으면 로컬 전용으로 동작.
+   anon key는 공개용 키(브라우저 노출 전제)이며, 데이터 접근은 RLS가 사용자별로 차단한다. */
+const SUPA={
+  url:'https://mqcqqehmerunoszjnujt.supabase.co',
+  key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xY3FxZWhtZXJ1bm9zempudWp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMzkwNTcsImV4cCI6MjA5OTcxNTA1N30.QQUDYkZz15aZ8FxtR1Fj2rM_fVG5nKRxQApdhTgYedg'
+};
+const SYNC_TABLE='trainer_state';
+const supaOn=()=>/^https:\/\//.test(SUPA.url)&&SUPA.key.length>20;
+let session=null; // {access_token, refresh_token, user:{id,email}}
+function loadSession(){try{session=JSON.parse(localStorage.getItem('guitarSession')||'null')}catch(e){session=null}}
+function saveSession(){try{session?localStorage.setItem('guitarSession',JSON.stringify(session)):localStorage.removeItem('guitarSession')}catch(e){}}
+function setSyncChip(state,txt){ // state: off|ok|busy|err
+  const c=$('syncChip');if(!c)return;
+  c.textContent=({off:'⚪ 오프라인',ok:'🟢 '+(txt||'동기화됨'),busy:'🔄 동기화 중',err:'🔴 '+(txt||'동기화 실패')})[state];
+}
+function authMsg(t,isErr){const m=$('authMsg');if(m){m.textContent=t||'';m.style.color=isErr?'var(--bad)':'var(--ink-3)'}}
+async function supaAuth(path,body){ // 인증 엔드포인트 호출
+  const r=await fetch(SUPA.url+'/auth/v1/'+path,{method:'POST',headers:{apikey:SUPA.key,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.msg||d.error_description||d.error||('HTTP '+r.status));
+  return d;
+}
+async function refreshSession(){
+  if(!session||!session.refresh_token)return false;
+  try{
+    const d=await supaAuth('token?grant_type=refresh_token',{refresh_token:session.refresh_token});
+    session={access_token:d.access_token,refresh_token:d.refresh_token,user:d.user};saveSession();return true;
+  }catch(e){return false}
+}
+async function supaRest(method,query,body,retry){ // REST(DB) 호출 — 401이면 토큰 갱신 후 1회 재시도
+  const h={apikey:SUPA.key,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'};
+  if(method==='POST')h.Prefer='resolution=merge-duplicates';
+  const r=await fetch(SUPA.url+'/rest/v1/'+query,{method,headers:h,body:body?JSON.stringify(body):undefined});
+  if(r.status===401&&!retry&&await refreshSession())return supaRest(method,query,body,true);
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const txt=await r.text(); // 업서트는 201에 빈 본문 — json() 대신 안전 파싱
+  return txt?JSON.parse(txt):null;
+}
+async function cloudPull(){
+  const rows=await supaRest('GET',SYNC_TABLE+'?select=state,updated_at');
+  return rows&&rows[0]?rows[0]:null;
+}
+async function cloudPush(){
+  await supaRest('POST',SYNC_TABLE,[{user_id:session.user.id,state:S,updated_at:new Date().toISOString()}]);
+  try{localStorage.setItem('guitarLastSync',String(Date.now()))}catch(e){}
+}
+let pushT=null;
+function queueCloudPush(){ // 로컬 저장 후 2초 뒤 클라우드로 (로그인 시에만)
+  if(!supaOn()||!session)return;
+  clearTimeout(pushT);
+  pushT=setTimeout(async()=>{
+    setSyncChip('busy');
+    try{await cloudPush();setSyncChip('ok');updAuthUI()}catch(e){setSyncChip('err')}
+  },2000);
+}
+function adoptRemote(state,updatedAtMs){ // 클라우드 상태를 채택하고 화면 전체 갱신
+  S=Object.assign({},S,state);fillDefaults();
+  try{localStorage.setItem(LS_KEY,JSON.stringify(S));localStorage.setItem(REV_KEY,String(updatedAtMs))}catch(e){}
+  if(met.on)metStop();resetSession();renderProg();drawFB();metSyncUI();applyWeekRx(S.phase,S.week);
+}
+async function initialSync(){ // 로그인/재방문 시: 더 최신인 쪽으로 맞춘다 (last-write-wins)
+  setSyncChip('busy');
+  try{
+    const remote=await cloudPull();
+    const localRev=+(localStorage.getItem(REV_KEY)||0);
+    if(remote&&Date.parse(remote.updated_at)>localRev){
+      adoptRemote(remote.state,Date.parse(remote.updated_at));
+    }else{
+      await cloudPush();
+    }
+    setSyncChip('ok');updAuthUI();
+  }catch(e){setSyncChip('err')}
+}
+function updAuthUI(){
+  const on=!!session;
+  $('authLoggedOut').hidden=on;$('authLoggedIn').hidden=!on;
+  $('btnAccount').textContent=on?'👤 '+(session.user.email||'').split('@')[0]:'👤 로그인';
+  if(on){
+    $('authWho').textContent=session.user.email||'';
+    const t=+(localStorage.getItem('guitarLastSync')||0);
+    $('authLastSync').textContent='마지막 동기화: '+(t?new Date(t).toLocaleString():'—');
+  }
+}
+async function doLogin(){
+  const email=$('authEmail').value.trim(),pw=$('authPw').value;
+  if(!email||pw.length<6){authMsg('이메일과 6자 이상 비밀번호를 입력하세요.',true);return}
+  authMsg('로그인 중...');
+  try{
+    const d=await supaAuth('token?grant_type=password',{email,password:pw});
+    session={access_token:d.access_token,refresh_token:d.refresh_token,user:d.user};saveSession();
+    authMsg('로그인 성공 — 동기화 중...');updAuthUI();
+    await initialSync();authMsg('완료! 이제 어느 기기에서든 이어집니다.');
+  }catch(e){authMsg('로그인 실패: '+e.message,true)}
+}
+async function doSignup(){
+  const email=$('authEmail').value.trim(),pw=$('authPw').value;
+  if(!email||pw.length<6){authMsg('이메일과 6자 이상 비밀번호를 입력하세요.',true);return}
+  authMsg('가입 중...');
+  try{
+    await supaAuth('signup',{email,password:pw});
+    authMsg('가입 완료 — 자동 로그인 중...');
+    await doLogin();
+  }catch(e){authMsg('가입 실패: '+e.message,true)}
+}
+function doLogout(){
+  session=null;saveSession();updAuthUI();setSyncChip('off');
+  authMsg('로그아웃되었습니다. 기록은 이 기기에 그대로 남아 있습니다.');
+}
+function initAuth(){
+  $('btnAccount').onclick=()=>{
+    if(!supaOn()){alert('클라우드 동기화가 아직 설정되지 않았습니다.\ndocs/클라우드_동기화_설정.md 의 안내대로 Supabase 프로젝트를 만들고\n파일 상단의 SUPA.url / SUPA.key 를 채우면 활성화됩니다.');return}
+    $('authModal').hidden=false;authMsg('');updAuthUI();
+  };
+  $('authClose').onclick=()=>{$('authModal').hidden=true};
+  $('authModal').onclick=e=>{if(e.target===$('authModal'))$('authModal').hidden=true};
+  $('authLogin').onclick=doLogin;
+  $('authSignup').onclick=doSignup;
+  $('authLogout').onclick=doLogout;
+  $('authSyncNow').onclick=()=>initialSync();
+  loadSession();
+  if(supaOn()&&session){ // 재방문: 토큰 갱신 후 동기화
+    updAuthUI();
+    refreshSession().then(ok=>{if(ok){updAuthUI();initialSync()}else{doLogout()}});
+  }
+}
+
+/* ================= 공통 ================= */
+const $=id=>document.getElementById(id);
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function beep(freq=880,dur=0.15,n=1){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    for(let i=0;i<n;i++){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.frequency.value=freq;o.connect(g);g.connect(ctx.destination);
+      const t=ctx.currentTime+i*0.25;
+      g.gain.setValueAtTime(0.001,t);g.gain.exponentialRampToValueAtTime(0.3,t+0.02);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+      o.start(t);o.stop(t+dur+0.05);
+    }
+  }catch(e){}
+}
+/* ===== 오디오 (메트로놈·음정 재생) ===== */
+const OPEN_MIDI={6:40,5:45,4:50,3:55,2:59,1:64}; // 개방현 MIDI (E2 A2 D3 G3 B3 E4)
+let AC=null;
+function ac(){ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended')AC.resume(); return AC; }
+function freqFromMidi(m){return 440*Math.pow(2,(m-69)/12)}
+function freqFromNote(ni,oct){return freqFromMidi(12*(oct+1)+ni)} // ni:0=C..11=B
+function tone(freq,t0,dur,type,gain){
+  try{
+    const ctx=ac();const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=type||'triangle';o.frequency.value=freq;o.connect(g);g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(gain||0.25,t0+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    o.start(t0);o.stop(t0+dur+0.03);
+  }catch(e){}
+}
+let octave=4;
+window.playFret=(s,f)=>tone(freqFromMidi(OPEN_MIDI[s]+f),ac().currentTime,0.9,'triangle',0.26);
+window.playPitch=(ni)=>tone(freqFromNote(ni,octave),ac().currentTime,0.85,'triangle',0.28);
+function playChord(){
+  const root=+$('fbRoot').value;if(root<0){alert('먼저 지판에서 루트를 선택하세요.');return}
+  const ch=CHORDS[$('fbChord').value];const base=12*(3+1)+root;let prev=-1;const t0=ac().currentTime;
+  ch.iv.forEach((iv,ix)=>{let m=base+iv;while(m<=prev)m+=12;prev=m;tone(freqFromMidi(m),t0+ix*0.13,1.2,'triangle',0.22)});
+}
+/* ===== 메트로놈 (룩어헤드 스케줄러) ===== */
+// 박자별 비트 수와 강세(2=강박, 1=약박)
+const METERS={
+  '1/1':{beats:1,acc:[2]},
+  '4/4':{beats:4,acc:[2,1,1,1]},
+  '3/4':{beats:3,acc:[2,1,1]},
+  '6/8':{beats:6,acc:[2,1,1,2,1,1]}
+};
+let met={on:false,timer:null,beat:0,nextTime:0};
+function meterCfg(){return METERS[S.meter]||METERS['4/4']}
+function renderBeatDots(){
+  const cfg=meterCfg();
+  $('beatDots').innerHTML=Array.from({length:cfg.beats},(_,i)=>`<i class="${cfg.acc[i]===2?'accent':''}"></i>`).join('');
+}
+function setBpm(v){
+  S.bpm=Math.max(20,Math.min(300,Math.round(v)));
+  $('mBpm').textContent=S.bpm;$('mSlider').value=S.bpm;
+  if(typeof saveS==='function')saveS();
+}
+// 비트음(퍼커시브 클릭): 대역통과 노이즈 버스트
+function clickNoise(t,freq,gain){
+  const ctx=ac();const dur=0.035;
+  const buf=ctx.createBuffer(1,Math.ceil(ctx.sampleRate*dur),ctx.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2.5);
+  const src=ctx.createBufferSource();src.buffer=buf;
+  const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=freq;bp.Q.value=5;
+  const g=ctx.createGain();g.gain.value=gain;
+  src.connect(bp);bp.connect(g);g.connect(ctx.destination);
+  src.start(t);src.stop(t+dur);
+}
+function clickAt(level,isSub,t){
+  const freq=level===2?(S.accentHz||1500):(S.weakHz||1000);
+  const gain=isSub?0.13:(level===2?0.5:0.32);
+  if((S.metSound||'electronic')==='click')clickNoise(t,freq*(isSub?0.8:1),gain);
+  else tone(isSub?freq*0.6:freq,t,isSub?0.025:0.05,'square',gain);
+}
+function highlightDot(idx,t){
+  const delay=Math.max(0,(t-ac().currentTime)*1000);
+  setTimeout(()=>{
+    if(!met.on)return;
+    const dots=$('beatDots').children;
+    for(let i=0;i<dots.length;i++)dots[i].classList.toggle('on',i===idx);
+  },delay);
+}
+function metScheduler(){
+  const ctx=ac();
+  while(met.nextTime<ctx.currentTime+0.12){
+    const cfg=meterCfg();const spb=60/S.bpm;const sub=S.subdiv||1;
+    if(met.beat>=cfg.beats)met.beat=0;
+    const level=cfg.acc[met.beat];
+    clickAt(level,false,met.nextTime);
+    for(let k=1;k<sub;k++)clickAt(level,true,met.nextTime+spb*k/sub);
+    highlightDot(met.beat,met.nextTime);
+    met.beat=(met.beat+1)%cfg.beats;
+    met.nextTime+=spb;
+  }
+  met.timer=setTimeout(metScheduler,25);
+}
+function metStart(){
+  if(met.on)return;
+  met.on=true;met.beat=0;met.nextTime=ac().currentTime+0.06;
+  metScheduler();
+  $('mToggle').textContent='■ 정지';$('mToggle').classList.remove('primary');$('mToggle').classList.add('stop');
+}
+function metStop(){
+  met.on=false;clearTimeout(met.timer);
+  [...$('beatDots').children].forEach(d=>d.classList.remove('on'));
+  $('mToggle').textContent='▶ 시작하기';$('mToggle').classList.add('primary');$('mToggle').classList.remove('stop');
+}
+function metToggle(){met.on?metStop():metStart()}
+function setMeter(m){S.meter=m;met.beat=0;renderBeatDots();document.querySelectorAll('#meterSeg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));saveS()}
+function setSubdiv(s){S.subdiv=s;document.querySelectorAll('#subSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.s===s));saveS()}
+// TAP 템포
+let taps=[];
+function tapTempo(){
+  const now=ac().currentTime*1000;
+  taps.push(now);taps=taps.filter(t=>now-t<3000);
+  if(taps.length>=2){
+    let sum=0;for(let i=1;i<taps.length;i++)sum+=taps[i]-taps[i-1];
+    setBpm(60000/(sum/(taps.length-1)));
+  }
+}
+function metSyncUI(){
+  setMeter(S.meter);setSubdiv(S.subdiv);setBpm(S.bpm);
+  document.querySelectorAll('#soundSeg button').forEach(b=>b.classList.toggle('on',b.dataset.snd===(S.metSound||'electronic')));
+  $('accHz').value=S.accentHz;$('accHzLbl').textContent=S.accentHz;
+  $('weakHz').value=S.weakHz;$('weakHzLbl').textContent=S.weakHz;
+}
+function buildNotePad(){
+  $('notePad').innerHTML=NOTE_F.map((n,i)=>`<button class="btn sm" onclick="playPitch(${i})">${n}</button>`).join('');
+}
+
+/* ================= 세션 러너 ================= */
+let segIdx=0, remain=0, running=false, tick=null, sessionTotal=0, sessionElapsed=0;
+function initSession(){
+  $('btnStart').onclick=toggleTimer;
+  $('btnSkip').onclick=()=>{finishSeg(false)};
+  $('btnReset').onclick=resetSession;
+  $('btnLogSess').onclick=()=>{
+    S.log.unshift({date:today(),phase:CURRICULUM[S.phase].name+' · '+CURRICULUM[S.phase].weeks[S.week].label,memo:$('sessMemo').value||'세션 완료'});
+    $('sessMemo').value='';$('doneCard').style.display='none';renderProg();saveS();alert('기록되었습니다.');
+  };
+  resetSession();
+}
+window.selectWeek=(p,w)=>{S.phase=p;S.week=w;resetSession();renderRoadmap();applyWeekRx(p,w);saveS();
+  const el=document.querySelector('#roadmap .rm-week.cur');if(el)el.scrollIntoView({block:'nearest'})};
+function resetSession(){
+  clearInterval(tick);running=false;segIdx=0;
+  sessionTotal=SEGDEF.reduce((a,s)=>a+s.min,0)*60;sessionElapsed=0;
+  remain=SEGDEF[0].min*60;
+  $('btnStart').textContent='시작';$('doneCard').style.display='none';
+  renderSegs();renderTimer();
+}
+function toggleTimer(){
+  if(running){clearInterval(tick);running=false;$('btnStart').textContent='재개';return}
+  running=true;$('btnStart').textContent='일시정지';
+  tick=setInterval(()=>{
+    remain--;sessionElapsed++;
+    if(remain<=0)finishSeg(true);
+    renderTimer();
+  },1000);
+}
+function finishSeg(withBeep){
+  if(withBeep)beep(880,.18,2);
+  segIdx++;
+  if(segIdx>=SEGDEF.length){
+    clearInterval(tick);running=false;
+    $('segName').textContent='세션 완료!';$('timer').textContent='00:00';
+    $('btnStart').textContent='시작';$('doneCard').style.display='block';
+    beep(1320,.2,3);renderSegs();return;
+  }
+  remain=SEGDEF[segIdx].min*60;renderSegs();renderTimer();
+}
+function renderTimer(){
+  const m=String(Math.floor(Math.max(remain,0)/60)).padStart(2,'0'),s=String(Math.max(remain,0)%60).padStart(2,'0');
+  $('timer').textContent=m+':'+s;
+  $('segName').textContent=segIdx<SEGDEF.length?SEGDEF[segIdx].name+' ('+SEGDEF[segIdx].min+'분)':'완료';
+  $('sessBar').style.width=Math.min(100,sessionElapsed/sessionTotal*100)+'%';
+}
+function renderSegs(){
+  const p=CURRICULUM[S.phase],wk=p.weeks[S.week];
+  $('wkTitle').textContent=p.name+' · '+wk.label;
+  renderOverview();
+  queueAlign();
+  $('segList').innerHTML=SEGDEF.map((sg,i)=>
+    `<div class="seg ${i===segIdx?'now':i<segIdx?'done':''}">
+      <div class="t">${sg.name}<br><span class="muted">${sg.min}분</span></div>
+      <div class="d">${wk[sg.key]}</div>
+    </div>`).join('');
+}
+
+/* ================= 드릴 (Anki식 간격 반복) ================= */
+let drill='note', dState={}, dTimer=null;
+const drillOptDefs={
+  note:{strings:['6번줄','5번줄','6·5 혼합','6·5·4 혼합'],notes:['자연음만','12음 전체'],auto:['수동','3초 자동','2초 자동']},
+  rnote:{strings:['6번줄','5번줄','6·5 혼합','6·5·4 혼합'],frets:['앵커(자연음) 프렛','0~12 전체']},
+  oct:{pairs:['6→5번줄','5→4번줄','6→4번줄'],notes:['자연음만','12음 전체']},
+  chord:{forms:['E폼','A폼','D폼','폼 자유'],quals:['메이저','마이너','7','maj7','m7','sus4','sus2','add9','dim','aug']},
+  xform:{pairs:['메이저→sus4','메이저→sus2','메이저→add9','메이저→aug','마이너→dim','메이저→마이너','메이저→7','메이저→maj7']},
+  triad:{sets:['1·2·3번줄','2·3·4번줄','3·4·5번줄'],zones:['1~5프렛','5~9프렛','9~12프렛'],quals:['메이저','마이너']},
+  target:{quals:['메이저','마이너','7','m7','maj7'],targets:['3도','7도']},
+  interval:{ivs:['단2도','장2도','단3도','장3도','완전4도','트라이톤','완전5도','단6도','장6도','단7도','장7도']},
+  dia:{keys:['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'],degrees:['I','ii','iii','IV','V','vi','vii°']},
+  shell:{quals:['maj7','7','m7']},
+  slash:{bass:['3도','5도','7도','2도(9)']}
+};
+// 다이어토닉/셸/분수 계산용 상수 (레퍼런스: Leavitt 전 조 다이어토닉 · 코드리빌딩 셸/분수)
+const MAJ_SCALE=[0,2,4,5,7,9,11];
+const DIA_ROMAN=['I','ii','iii','IV','V','vi','vii°'];
+const DIA_SUF=['','m','m','','','m','dim'];
+const DIA_FUNC=['으뜸(T)','윗으뜸','가온','버금딸림(SD)','딸림(D)','버금가온','이끔'];
+const SHELL_Q=['maj7','7','m7'];
+const SLASH_SEMI=[4,7,11,2]; // 3도·5도·7도·2도(9)
+// 코드 폼 운지 모양 (form: 0=E폼 1=A폼 2=D폼, 값=루트 프렛 기준 오프셋, -1=뮤트). 줄 순서 [6,5,4,3,2,1]
+const CHORD_SHAPES={
+  0:{'메이저':[0,2,2,1,0,0],'마이너':[0,2,2,0,0,0],'7':[0,2,0,1,0,0],'maj7':[0,2,1,1,0,0],'m7':[0,2,0,0,0,0]},
+  1:{'메이저':[-1,0,2,2,2,0],'마이너':[-1,0,2,2,1,0],'7':[-1,0,2,0,2,0],'maj7':[-1,0,2,1,2,0],'m7':[-1,0,2,0,1,0]},
+  2:{'메이저':[-1,-1,0,2,3,2],'마이너':[-1,-1,0,2,3,1],'7':[-1,-1,0,2,1,2],'maj7':[-1,-1,0,2,2,2],'m7':[-1,-1,0,2,1,1]}
+};
+// 가로형 코드 다이어그램 (우측 지판과 같은 방향: 줄=가로, 프렛=좌→우). 각 음에 도수 색+라벨.
+function chordDiagram(root,form,qual){
+  const sh=CHORD_SHAPES[form]&&CHORD_SHAPES[form][qual];if(!sh)return '';
+  const rootStr=[6,5,4][form];const baseFret=(root-OPEN[rootStr]+12)%12;
+  const abs=sh.map(o=>o<0?-1:baseFret+o); // index0=6번줄 .. index5=1번줄
+  const pressed=abs.filter(f=>f>0);
+  const maxF=pressed.length?Math.max(...pressed):0;const minF=pressed.length?Math.min(...pressed):0;
+  const nut=maxF<=4;const winStart=nut?0:minF-1;const nFrets=5;
+  const ch=CHORDS[qual],bd=getCss('--ink-3'),border=getCss('--border');
+  const padL=30,padT=16,colW=32,rowH=18,W=padL+nFrets*colW+12,H=padT+5*rowH+20;
+  const fx=f=>padL+(f-winStart)*colW, sy=s=>padT+(s-1)*rowH;
+  let g=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="overflow:visible">`;
+  for(let k=0;k<=nFrets;k++){const f=winStart+k,x=fx(f);g+=`<line x1="${x}" y1="${sy(1)}" x2="${x}" y2="${sy(6)}" stroke="${border}" stroke-width="${f===0?3.5:1.2}"/>`;}
+  for(let s=1;s<=6;s++)g+=`<line x1="${fx(winStart)}" y1="${sy(s)}" x2="${fx(winStart+nFrets)}" y2="${sy(s)}" stroke="${bd}" stroke-width="1"/>`;
+  for(let k=1;k<=nFrets;k++){const f=winStart+k;g+=`<text x="${fx(f)-colW/2}" y="${sy(6)+15}" font-size="9" text-anchor="middle" fill="${bd}">${f}</text>`;}
+  for(let i=0;i<6;i++){
+    const strNum=6-i,a=abs[i],y=sy(strNum),xm=fx(winStart)-14;
+    if(a<0){g+=`<text x="${xm}" y="${y+3}" font-size="11" text-anchor="middle" fill="${bd}">×</text>`;continue}
+    const ni=(OPEN[strNum]+a)%12,iv=(ni-root+12)%12,di=ch.iv.findIndex(v=>v%12===iv),deg=di>=0?ch.deg[di]:'';
+    const col=DEGCOLOR(deg),cx=a===0?xm:fx(a)-colW/2;
+    g+=`<g><circle cx="${cx}" cy="${y}" r="8.5" fill="${col}"/><text x="${cx}" y="${y+3}" font-size="8.5" font-weight="700" text-anchor="middle" fill="#fff">${deg}</text></g>`;
+  }
+  return g+'</svg>';
+}
+// E·A·D 폼 셰이프가 없는 코드(sus·add·dim·aug·폼자유 등): 지판 전체(0~12프렛)에 구성음 위치를 도수 색으로
+function fullNeckDiagram(root,qual){
+  const ch=CHORDS[qual];if(!ch)return '';
+  const set={};ch.iv.forEach((iv,i)=>set[(root+iv)%12]=ch.deg[i]);
+  const NF=12,x0=42,y0=14,fw=46,sh=24,W=x0+NF*fw+16,H=y0+5*sh+20;
+  const bd=getCss('--ink-3'),border=getCss('--border');
+  let g=`<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="max-width:760px;overflow:visible">`;
+  for(let f=0;f<=NF;f++){const x=x0+f*fw;g+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0+5*sh}" stroke="${f===0?getCss('--ink'):border}" stroke-width="${f===0?4:1.2}"/>`;}
+  [3,5,7,9].forEach(f=>g+=`<circle cx="${x0+(f-0.5)*fw}" cy="${y0+2.5*sh}" r="4" fill="${getCss('--surface-3')}"/>`);
+  for(let s=1;s<=6;s++){const y=y0+(s-1)*sh;g+=`<line x1="${x0}" y1="${y}" x2="${x0+NF*fw}" y2="${y}" stroke="${bd}" stroke-width="${0.7+s*0.15}"/><text x="${x0-30}" y="${y+4}" font-size="10.5" fill="${bd}">${s}번</text>`;}
+  for(let f=1;f<=12;f++)g+=`<text x="${x0+(f-0.5)*fw}" y="${y0+5*sh+15}" font-size="10" text-anchor="middle" fill="${bd}">${f}</text>`;
+  for(let s=1;s<=6;s++)for(let f=0;f<=NF;f++){
+    const ni=(OPEN[s]+f)%12,deg=set[ni];if(deg===undefined)continue;
+    const cx=f===0?x0-13:x0+(f-0.5)*fw, cy=y0+(s-1)*sh, col=DEGCOLOR(deg);
+    g+=`<g style="cursor:pointer" onclick="playFret(${s},${f})"><circle cx="${cx}" cy="${cy}" r="10" fill="${col}"/><text x="${cx}" y="${cy+3.6}" font-size="10" font-weight="700" text-anchor="middle" fill="#fff">${deg}</text></g>`;
+  }
+  return g+'</svg>';
+}
+// xform: 코드 한 음 조작(변형)의 base→target 쌍
+const XFORM_PAIRS=[
+  {base:'메이저',tgt:'sus4'},{base:'메이저',tgt:'sus2'},{base:'메이저',tgt:'add9'},
+  {base:'메이저',tgt:'aug'}, {base:'마이너',tgt:'dim'}, {base:'메이저',tgt:'마이너'},
+  {base:'메이저',tgt:'7'},   {base:'메이저',tgt:'maj7'}
+];
+const TQ=['메이저','마이너','7','m7','maj7']; // target 모드 콜리티
+const chordSym=q=>q==='메이저'?'':q==='마이너'?'m':q;
+function degIv(qual,want){const ch=CHORDS[qual];const i=ch.deg.findIndex(d=>d.includes(want));return i<0?null:ch.iv[i]}
+let dOpt={note:{s:2,n:0,a:0},rnote:{s:0,fr:0},oct:{pair:[0],n:1},chord:{f:[0,1],q:[0,1,2,3,4]},xform:{pair:[0,1]},triad:{set:[0,1,2],zone:[0,1,2],q:[0,1]},target:{q:[0,1,2],t:[0]},
+  interval:{iv:[2,3,4,6]},dia:{key:[0,7,2,5],deg:[0,1,2,3,4,5,6]},shell:{q:[0,1,2]},slash:{b:[0,1]}};
+document.querySelectorAll('#drillPick .tag').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('#drillPick .tag').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');drill=t.dataset.d;renderDrillOpts();buildQueue();
+  // 수동 선택 = 자유 연습: 주차 처방 스텝·목표 대신 중립 표시
+  document.querySelectorAll('#rxBar .tp-step').forEach(c=>c.classList.remove('on'));
+  const g=$('rxGoal');if(g)g.innerHTML='🎼 자유 연습 · '+MODE_LABEL[drill];
+});
+const MODE_LABEL={note:'음 찾기',rnote:'역방향',oct:'옥타브',interval:'인터벌',chord:'코드 폼',xform:'한 음 조작',shell:'셸',slash:'분수',triad:'트라이어드',target:'타겟 톤',dia:'다이어토닉'};
+// 페이즈별 학습 목표·개요 (커리큘럼 '왜' 섹션 기반)
+const PHASE_OVERVIEW=[
+ {goal:'지판의 음 이름을 몸에 새긴다 (6·5번줄 자연음)',desc:'블록(상대적 모양)에 "키 이름"을 붙이는 절대 기준점. 이게 없으면 이후 모든 단계가 "어느 키인지 모른 채 치는" 상태가 된다. 6·5번줄만 외우면 1번줄=6번줄 복사, 4번줄=6번줄+2프렛으로 유도된다.'},
+ {goal:'E·A·D 폼을 "줄마다 역할이 보이는 구조물"로 (3·5·7도 스위치)',desc:'외운 모양을 해부해, 3도 줄(밝기 스위치)과 7도 줄(색)을 손에 박는다. 3도가 코드의 성격을, 7도가 색을 정한다. 폼마다 3·7도가 앉는 줄이 다르다는 것을 체감한다.'},
+ {goal:'코드를 3음짜리 이동 블록으로 — 지판을 구역 단위로 자유롭게',desc:'6줄 폼을 1·2·3번줄 같은 3음 트라이어드로 축소하고, 전위(자리바꿈)로 어느 구역에서든 같은 코드를 잡는다. 이 단계가 전체 커리큘럼의 무게중심이다.'},
+ {goal:'확장 코드를 "아는 코드에서 한 음 조작"으로 흡수',desc:'sus·add·dim·aug를 새 코드로 외우지 않는다. 조작 지점은 이미 아는 3도·5도·7도 — 한 음만 움직여 긴장(sus)·색(add9)·경과(dim)를 만든다.'},
+ {goal:'세로(화음)를 가로(선율)로 — 타겟 톤 어프로치',desc:'구성음을 아르페지오로 펼치고, 코드가 바뀌는 첫 박에 새 코드의 3도·7도에 착지하는 솔로를 만든다. 먼저 "이 진행이 무슨 조·몇 번 코드인가"(다이어토닉)를 익혀 두면 솔로가 훨씬 쉬워진다.'},
+ {goal:'낱개 코드에서 "코드의 연결"로 — 보이스 리딩',desc:'코드 전환 시 손가락 이동을 최소화하는 보이싱과, 최저음이 계단으로 흐르는 베이스 라인을 설계한다. 완성 단계이자 평생 과제.'}
+];
+// 드릴별 강사 설명 (순서·배움·활용)
+const DRILL_GUIDE={
+ note:{name:'음 찾기 (음이름 → 위치)',intro:'지판의 각 칸이 무슨 음인지 즉시 아는 것 — 모든 이론의 출발점.',steps:['프렛 점 위치의 자연음(앵커)부터 외운다 (0=E,3=G,5=A,7=B,8=C,10=D,12=E)','사이 음은 "B-C·E-F만 반음(1칸)" 규칙으로 채운다','6번줄 → 5번줄, 한 줄씩 확실히','반응을 3초 → 2초 → 1초로 줄인다'],learn:'지판의 절대 좌표. 상대적 모양(블록)에 키 이름을 붙이는 기준점.',use:'파워코드·바레코드의 루트를 즉시 찾아 어떤 키로든 이동하고, 악보의 음을 지판에서 바로 짚는다.',tip:'6번줄 8프렛 = C. 이 한 점을 알면 C 파워코드·C 바레코드가 모두 거기서 나온다.'},
+ rnote:{name:'역방향 (위치 → 음이름)',intro:'이름→위치의 반대 방향. 짚은 자리가 무슨 음인지 바로 튀어나오게.',steps:['아무 프렛이나 짚고 그 음 이름을 즉답','자연음 프렛부터, 익으면 반음 포함','6번줄이 되면 5번줄로 확장'],learn:'음이름→위치의 반대 신경 경로. 양방향이 되어야 진짜 아는 것.',use:'연주 중 지금 짚은 음이 무슨 음인지 인지 → 즉흥·편곡에서 방향 감각을 만든다.',tip:'5번줄 3프렛을 짚었다 → "C". 솔로 중 내 손이 어느 음을 누르는지 알게 된다.'},
+ oct:{name:'옥타브 셔틀 (같은 음의 다른 자리)',intro:'같은 음이 지판 여러 곳에 있다 — 그 지도를 손에 넣기.',steps:['한 음을 정하고 6→5→4번줄에서 같은 음을 찾는다','6↔4번줄은 "+2프렛" 규칙을 눈으로 확인','12음 전체로 넓힌다'],learn:'지판 위 같은 피치의 여러 위치(옥타브·유니슨 형태).',use:'옥타브 주법, 보이싱을 다른 구역으로 옮기기, 멜로디를 다른 옥타브로 재배치.',tip:'6번줄 5프렛 A → 4번줄 7프렛에도 같은 A(옥타브 위). 6↔4번줄은 항상 +2프렛.'},
+ interval:{name:'인터벌 (음정)',intro:'두 음 사이의 거리 — 코드·스케일·하모니를 만드는 벽돌.',steps:['기준음에서 목표 음정(장3도·완전5도 등) 위 음을 이름으로','쉬운 음정(3도·5도)부터, 익으면 6·7도·트라이톤','귀로도 들으며 음정 색을 익힌다'],learn:'음과 음 사이의 거리 — 모든 코드·스케일의 원자.',use:'코드 구성음을 계산으로 도출하고, 하모니(3도·6도)를 붙이고, 귀로 음정을 인식한다.',tip:'C에서 장3도 위 = E. 장3도를 쌓으면 메이저의 밝은 소리가 만들어진다.'},
+ chord:{name:'코드 폼 (E·A·D)',intro:'E·A·D 폼을 "모양"이 아니라 "줄별 도수"로 이해하고 잡기.',steps:['루트가 몇 번 줄인지 확인 (E=6번, A=5번, D=4번)','한 줄씩 튕기며 도수 낭독 (R-5-8-3-5-R)','한 위치에서 4종 변환 (→m, →maj7, →7, →m7)','정답의 다이어그램으로 운지·도수 확인'],learn:'폼이 "모양"이 아니라 줄별 도수의 집합. 3·7도가 앉는 줄이 폼마다 다르다.',use:'어떤 코드든 지판 세 구역에서 잡고, 좁은 프렛 범위에서 리듬 반주를 한다.',tip:'F(E폼)에서 3번줄을 반음 내리면 Fm. 3도 한 음이 밝기(장↔단)를 바꾼다.'},
+ xform:{name:'한 음 조작 (변형 호출)',intro:'아는 코드에서 한 음만 바꿔 sus·add·dim·aug를 만들기.',steps:['아는 코드에서 한 음만 이동한다','sus=3도 대체, add9=9도 추가, dim/aug=5도 변형','빠진 음 → 새 음의 도수를 말하며'],learn:'확장 코드는 새 코드가 아니라 한 음의 조작. 어느 도수가 어디로 가는지.',use:'긴장-해소(sus→메이저), 착색(add9), 경과(dim)를 실시간 호출로 변형한다.',tip:'C의 3도(E)를 4도(F)로 올리면 Csus4 — 긴장. 다시 E로 내리면 해소된다.'},
+ shell:{name:'셸 보이싱 (R·3·7)',intro:'7th 코드의 색을 정하는 최소음 R·3·7만 남긴 보이싱.',steps:['7th 코드에서 5도·중복음을 버리고 R·3·7만 잡는다','나아가 3·7(가이드 톤)만으로도 색이 남는지 확인','maj7↔7↔m7의 3·7 차이를 비교'],learn:'코드의 색을 정하는 최소음 — 3도가 성격, 7도가 색. 재즈·발라드 보이싱의 핵심.',use:'손이 편한 2~3음 보이싱, 베이스와 겹치지 않는 반주, 보이스 리딩의 뼈대.',tip:'Cmaj7 = C·E·B. 밴드에선 베이스가 C를 치므로 3·7(E·B)만 쳐도 코드 색이 산다.'},
+ slash:{name:'분수 코드 (다른 베이스)',intro:'코드 위에 다른 베이스음을 얹은 분수코드(C/E).',steps:['코드 위에 다른 베이스음을 얹는다 (3도·5도)','C/E, C/G처럼 표기와 베이스음을 확인','진행에서 최저음의 흐름을 듣는다'],learn:'최저음이 코드의 성격과 진행의 흐름을 만든다.',use:'하행 베이스 라인(C→C/B→Am→Am/G)으로 코드를 부드럽게 잇는다.',tip:'C→C/B→Am이면 베이스가 C→B→A로 계단처럼 내려가 진행이 매끄러워진다.'},
+ triad:{name:'트라이어드 (3음 블록)',intro:'코드를 3음 블록으로 줄여 지판 어디서든 잡기.',steps:['스트링셋에서 3형태(기본형·1전위·2전위)를 직접 탐색','전위 사다리: 낮은→높은 위치로 연달아, 최저음 도수 낭독','구역(프렛 범위)을 제한해 그 안에서만 진행'],learn:'코드를 3음 이동 블록으로. 지판을 좁은 구역 단위로 자유롭게 쓰는 능력.',use:'하이 코드 반주, 좁은 구역 연주, 아르페지오·솔로의 뼈대.',tip:'C(C·E·G)를 1·2·3번줄에서 세 모양(전위)으로. 구역을 옮겨도 같은 C 코드다.'},
+ target:{name:'타겟 톤 (3도·7도 착지)',intro:'솔로에서 코드가 바뀌는 순간 노릴 음(3도·7도).',steps:['각 코드의 3도(먼저), 7도 음을 즉답','코드가 바뀌는 첫 박에 새 코드의 3도로 착지','7도 착지, 3↔7 번갈아 착지로 확장'],learn:'코드가 바뀔 때 어느 음을 노리면 "코드를 그리는" 솔로가 되는지.',use:'코드 진행을 따라가는 솔로·필. 강박에 반드시 구성음(특히 3도)을 둔다.',tip:'Am→Dm에서 Dm으로 바뀌는 첫 박에 F(Dm의 3도)에 착지하면 코드가 들리는 솔로가 된다.'},
+ dia:{name:'다이어토닉 (조성·화음 기능)',intro:'한 조(key)에 사는 7개 코드와 각자의 역할(기능).',steps:['조(key)를 정하고 I~vii°를 순서대로','V(딸림)·IV(버금딸림)·ii 같은 자주 쓰는 기능부터','같은 코드가 다른 조에서 몇 번인지도 생각'],learn:'한 조에 어떤 코드가 사는지, 각 코드의 기능(으뜸·딸림·버금딸림).',use:'곡의 코드 진행을 조성으로 이해하고, 진행을 예측·작곡하고, 다른 조로 이조한다.',tip:'C조 = C·Dm·Em·F·G·Am·B°. G(V)는 C(I)로 돌아가려는 힘(딸림)을 가진다.'}
+};
+// 깊이 읽기 — 각 드릴의 본질을 풀어 쓴 장문 해설 (버클리 교수법 관점의 에세이)
+const DRILL_ESSAY={
+ note:'<p>기타는 얄궂은 악기입니다. 같은 손모양을 프렛 몇 칸만 옮기면 전혀 다른 코드가 되고, 피아노라면 늘 한 자리에 있을 가운데 C가 지판 위 여러 곳에 흩어져 삽니다. 즉 기타는 <b>상대적인 모양의 악기</b>이며, 그 모양들은 이름표가 붙기 전까지는 음악이 아니라 손버릇일 뿐입니다. 이 훈련은 그 모든 모양에 이름을 붙여 줄 <b>절대 좌표계</b>를 손에 심는 일이고, 그래서 커리큘럼 전체의 맨 앞에 서 있습니다.</p><p>단, 지판의 84칸을 낱낱이 통암기하려는 시도는 하지 마십시오. 그것은 의미 없는 84개의 짝 맞추기이고, 대부분 며칠 안에 무너집니다. 대신 <b>앵커</b>를 심으십시오 — 프렛 점이 찍힌 자리의 자연음, 6번줄이라면 0=E, 3=G, 5=A, 7=B, 8=C, 10=D, 12=E입니다. 그리고 그 사이를 채우는 규칙은 단 하나뿐입니다. <b>"B와 C, E와 F 사이만 반음(1칸), 나머지는 전부 온음(2칸)"</b>. 일곱 개의 기둥과 한 줄짜리 규칙 — 이것이 한 줄 전체를, 나아가 지판 전체를 설명합니다.</p><p>연습할 때 반드시 지켜야 할 습관이 있습니다. 찾은 음의 이름을 <b>입으로 소리 내어 말하는 것</b>입니다. 손가락만 움직이는 연습은 근육 기억만 남기고 지판 이해는 남기지 않습니다. 소리 내어 말하는 순간 뇌는 "위치"와 "이름"을 강제로 함께 인출해야 하고, 그 인출의 수고가 곧 기억의 접착제가 됩니다. 눈으로 훑고 "안다"고 넘어가는 것과, 입으로 튀어나오게 만드는 것은 전혀 다른 수준의 앎입니다.</p><p>속도는 계단식으로 조이십시오. 처음에는 3초가 걸려도 좋습니다 — 3초를 2초로, 2초를 1초로 줄이는 것이 목표입니다. 그리고 확장은 <b>한 번에 한 축씩만</b> 하십시오. 6번줄 자연음이 익은 뒤에 5번줄을 더하고, 두 줄이 섞여도 흔들리지 않게 된 뒤에야 비로소 반음(B♭, E♭ 같은)을 섞습니다. 새 줄과 반음을 같은 날 동시에 넓히면 둘 다 어중간해집니다. 그리고 한 번 지나간 음도 버리지 말고 간격 반복으로 계속 되돌아오십시오 — 좌표는 복습으로만 굳습니다.</p><p>이 한 겹이 뚫리면 즉시 보상이 옵니다. "B♭ 파워코드!"라는 호출에 손이 6번줄 6프렛으로 저절로 가고, 같은 자리에서 B♭ 바레코드가 태어납니다. 루트를 아는 사람에게 파워코드와 바레코드는 12키 어디로든 옮길 수 있는 이동식 도구가 됩니다. 카포 없이, 계산 없이, 어떤 키의 곡이 와도 몇 초 안에 손이 자리를 잡는 경험 — 그것이 이 좌표계의 첫 배당금입니다.</p><p>그리고 이 훈련에는 숨은 경제학이 있습니다. 6번줄과 5번줄, <b>단 두 줄만 확실하면 지판의 나머지가 공짜로 딸려 옵니다.</b> 1번줄은 6번줄과 같은 E줄이니 그대로 복사되고, 4번줄의 음은 6번줄 같은 음의 +2프렛 자리에 있으며(다음 옥타브 훈련에서 손에 넣습니다), 3번줄은 5번줄에서 같은 방식으로 유도됩니다. 그래서 이 커리큘럼은 여섯 줄이 아니라 두 줄을 외우게 합니다. 적게 외우고 많이 유도하는 것 — 이것이 오래가는 학습의 모양입니다.</p><p>더 멀리 보면, 이후의 모든 훈련이 이 좌표 위에서 돌아갑니다. 폼 해부도, 트라이어드도, 솔로의 타겟 톤도 결국 "지금 내가 어느 키의 어느 자리에 있는가"를 이 좌표로 압니다. 여기가 흔들리면 그 위의 모든 것이 "어느 키인지 모른 채 치는" 상태, 모래 위의 집이 됩니다. 반대로 여기가 단단하면, 이후 배우는 모든 상대적 모양이 즉시 12키의 실전 도구로 바뀝니다.</p><p>겉보기에 가장 지루한 훈련이 실은 가장 이자율이 높은 투자입니다. 2주만 성실히 하면 앵커가 서고, 이후로는 매일 몇 분의 워밍업으로 평생 유지됩니다. 서두르지 말고, 대신 매일 하십시오. "6번줄 8프렛?"이라는 물음에 생각보다 입이 먼저 "C"라고 답하는 날 — 그날부터 지판은 어둠이 아니라 지도가 됩니다.</p>',
+ rnote:'<p>앞의 "음 찾기"가 이름을 듣고 자리를 짚는 훈련이라면, 이것은 정확히 그 거울상 — 자리를 보고 이름이 튀어나오게 하는 훈련입니다. 같은 지식의 앞뒷면처럼 보이지만, 뇌에게는 전혀 다른 두 개의 길입니다. 심리학이 <b>회상(recall)</b>과 <b>재인(recognition)</b>을 다른 능력으로 구분하듯, 이름→위치와 위치→이름은 서로 다른 신경 경로를 씁니다. 한쪽만 뚫려 있다면 그것은 절반의 앎입니다 — <b>양방향이 열려야 그 음을 진짜 아는 것</b>입니다.</p><p>왜 한쪽만 뚫린 채로 남기 쉬울까요. 우리의 연습이 대부분 한 방향이기 때문입니다. 악보나 코드 이름을 보고 자리를 찾는 훈련은 자주 하지만, 반대로 지판의 임의 지점에서 이름을 인출하는 일은 일부러 만들지 않으면 일어나지 않습니다. 그래서 "C를 짚어 봐"에는 즉답하는 사람이 "지금 짚은 그 음이 뭐야?"에는 지판을 처음부터 세어 올라갑니다. 이 비대칭을 방치하면, 지도는 있는데 현재 위치 표시가 없는 내비게이션이 됩니다.</p><p>연주는 실시간이라는 사실이 이 훈련의 존재 이유입니다. 솔로 도중 "지금 3번 손가락이 누른 이 음이 무슨 음인가"를 알아야, "그럼 여기서 반음 올리면 다음 코드의 3도에 닿는다" 같은 판단이 그 자리에서 가능해집니다. 이름→위치만 아는 사람은 종이 위의 음악을 지판으로 옮길 수 있을 뿐이지만, 위치→이름이 열린 사람은 <b>지판 위에서 직접 생각</b>합니다. 즉흥의 방향 감각, 실수했을 때 어디로 피할지 아는 감각이 전부 이 두 번째 능력에서 나옵니다.</p><p>그리고 이 능력은 나중에 한 단계 더 깊은 사슬로 이어집니다. 위치→이름이 되면, 그다음은 이름→도수입니다. "이 자리는 A, 지금 코드가 F니까 나는 F의 3도 위에 있다" — 이렇게 <b>위치가 이름을 거쳐 기능으로 번역</b>될 때, 비로소 아르페지오와 타겟 톤 훈련이 작동합니다. 귀로 곡을 딸 때도 마찬가지입니다. 들리는 음을 지판에서 더듬어 찾았을 때 그 자리의 이름이 즉시 떠올라야 채보가 굴러갑니다.</p><p>연습 방법은 단순하고, 겁먹을 이유가 없습니다. 자연음 프렛부터 시작해, 익으면 반음을 섞고, 6번줄이 되면 5번줄로 넓히십시오. 요령이 하나 있다면 — 0프렛부터 세어 올라가지 말고, <b>가장 가까운 앵커에서 점프</b>하십시오. 9프렛이 나오면 "0에서 아홉 칸"이 아니라 "8프렛 C의 한 칸 위, D♭"로 읽는 것입니다. 앵커에서 한두 칸 안에 모든 답이 있습니다.</p><p>반음 이름에 관한 사소한 진실도 하나 알아 두십시오. 6번줄 4프렛은 A♭이라고도, G♯이라고도 부를 수 있습니다 — 같은 자리, 같은 소리입니다. 이 앱은 플랫 표기(D♭, E♭, A♭…)로 통일해 부르지만, 어느 이름이 "맞는가"는 문맥(조성)이 정하는 문제일 뿐입니다. 지금 단계에서 중요한 것은 이름의 철자가 아니라, 그 자리의 <b>소리 하나에 즉시 도달하는 반사</b>입니다.</p><p>가장 좋은 훈련 배치는 "음 찾기"와의 교차입니다. 이름→위치를 몇 분, 곧바로 위치→이름을 몇 분 — 이렇게 양쪽에서 번갈아 조이면 좌표계가 죔쇠에 물린 듯 단단해집니다. 옥타브 셔틀과 엮어도 좋습니다. 한 자리의 이름을 답한 뒤 "그럼 같은 음이 옆줄 어디에 있지?"로 이어 가면, 하나의 문답이 지도 전체를 흔들어 깨웁니다.</p><p>이 훈련의 끝에서 얻는 것은 화려한 기술이 아니라 조용한 자신감입니다. 어느 프렛에 손이 내려앉아도 "여기는 어디"라고 아는 손 — 낯선 동네에서도 길을 잃지 않는 사람의 걸음걸이 같은 것입니다. 5번줄 3프렛을 짚는 순간 "C"가 생각보다 빨리 입에서 나온다면, 당신의 손은 이제 자기가 어디에 서 있는지 아는 손입니다.</p>',
+ oct:'<p>같은 음이 지판 위 대여섯 군데에 흩어져 산다는 것 — 이것이 기타의 축복이자 혼란입니다. 피아노의 A는 한 건반이지만 기타의 A는 여러 줄, 여러 프렛에 있고, 초심자에게 이 흩어짐은 지판이 미궁처럼 느껴지는 가장 큰 이유입니다. 이 훈련의 목적은 그 흩어짐을 약점이 아니라 <b>지도</b>로 뒤집는 것입니다. 한 음을 정해 놓고 6번줄에서 5번줄로, 다시 4번줄로 같은 음을 쫓아가는 셔틀 — 그 왕복이 지도를 그립니다.</p><p>손에 박아야 할 것은 계산이 아니라 <b>도형</b>입니다. 6번줄의 어떤 음과 그 옥타브 위 4번줄의 음은 <b>항상 +2프렛</b> 관계입니다(6번줄 5프렛 A → 4번줄 7프렛 A). 5번줄과 3번줄 사이도 똑같이 +2프렛입니다. "두 줄 건너, 두 칸 위" — 이 사선의 그림이 눈에 익으면, 옥타브는 세는 것이 아니라 보이는 것이 됩니다. 처음에는 자연음만으로, 익으면 12음 전체로 넓히되, 착지할 때마다 음 이름을 소리 내어 말하십시오.</p><p>그런데 이 규칙에는 유명한 <b>접힘</b>이 하나 있습니다. 4번줄에서 2번줄로, 3번줄에서 1번줄로 — 즉 2번줄이 끼는 순간 — 옥타브 도형이 한 칸 더 밀려 +3프렛이 됩니다. 이유는 기타의 조율에 있습니다. 다른 줄들은 전부 완전4도 간격인데 <b>오직 3번줄(G)과 2번줄(B) 사이만 장3도</b>로 좁게 조율되어 있기 때문입니다. 이것을 예외로 외우지 말고 조율의 결과로 이해해 두십시오 — 같은 접힘을 트라이어드의 스트링셋 이동에서 다시 만나게 되는데, 그때 이 이해가 큰 이자를 붙여 돌아옵니다.</p><p>이 훈련은 또한 암기의 경제학이기도 합니다. 앞 단계에서 6번줄과 5번줄을 외웠다면, 옥타브 도형은 그 두 줄의 지식을 <b>4번줄과 3번줄로 공짜로 복사</b>해 줍니다. 4번줄의 이름이 궁금하면 6번줄 -2프렛을 보면 되고, 3번줄은 5번줄에서 유도됩니다. 1번줄은 6번줄의 복사본이니, 결국 두 줄의 암기와 하나의 도형으로 여섯 줄 전체가 열리는 셈입니다. 이것이 이 커리큘럼이 "두 줄만 외우라"고 말할 수 있는 근거입니다.</p><p>음악적 쓰임의 첫째는 <b>옥타브 주법</b>입니다. 한 멜로디를 옥타브 두 음으로 겹쳐 연주하면 선율이 굵고 또렷해집니다 — 재즈 기타의 웨스 몽고메리가 상징처럼 만든 바로 그 소리이고, 펑크와 팝의 리프에서도 늘 일하는 기술입니다. 사이에 낀 줄을 살짝 뮤트하고 두 음만 울리는 이 주법은, 옥타브 도형이 눈에 익은 사람에게는 그냥 "멜로디를 도형째 움직이는 일"이 됩니다.</p><p>둘째 쓰임은 <b>구역 이동</b>입니다. 낮은 구역에서 잡던 보이싱이나 프레이즈를 옥타브 지도를 따라 높은 구역으로 통째로 옮길 수 있고, 노래 반주에서 음역이 답답하면 같은 멜로디를 한 옥타브 위로 재배치할 수 있습니다. 여기에 미묘한 보너스가 하나 더 있습니다 — 같은 높이의 음이라도 굵은 줄의 높은 프렛과 가는 줄의 낮은 프렛은 <b>음색이 다릅니다</b>. 어디서 칠지 고를 수 있다는 것은 음높이만이 아니라 음색까지 고를 수 있다는 뜻입니다.</p><p>훈련의 형태는 단순한 왕복입니다. 음 하나를 정하고 6번줄에서 찾아 이름을 말하고, 5번줄에서 같은 음(유니슨 또는 옥타브)을 찾고, 4번줄로 넘어가며 +2프렛 규칙을 눈으로 확인합니다. 익숙해지면 출발 줄을 바꾸고, 반음을 포함시키고, 속도를 조입니다. 단조로워 보여도, 이 왕복 하나하나가 "지판의 같은 음들"이라는 성좌를 잇는 선입니다.</p><p>이 지도가 손에 들어오면 지판에 대한 감각 자체가 바뀝니다. "한 자리에 갇혀 치는 곳"이었던 지판이 "같은 음이 사방에서 기다리는 열린 공간"이 되는 첫 경험 — 그것이 이 훈련의 진짜 보상입니다. 이후 트라이어드 단계에서 구역을 제한당하고도(이른바 5프렛 감옥) 모든 코드를 찾아내는 능력은, 바로 지금 그리는 이 옥타브 지도 위에서 자랍니다.</p>',
+ interval:'<p>음악의 재료는 "음"이 아니라 <b>"음과 음 사이의 거리"</b>입니다. C라는 음 하나에는 아무 표정이 없습니다. 그러나 C 위에 장3도를 얹는 순간 밝음이 태어나고, ♭3도를 얹으면 그늘이 태어납니다. 모든 코드와 스케일은 음정(인터벌)이라는 벽돌로 지어진 건축물이며, 이 훈련은 그 벽돌 하나하나의 크기와 색을 손과 귀에 함께 새기는 일입니다. 벽돌을 모르는 채 건물 모양만 외우는 공부 — 그것이 지금까지의 코드 암기였다면, 여기서부터는 재료를 만집니다.</p><p>음정을 아는 데는 두 층이 있습니다. 첫째 층은 <b>계산</b>입니다 — 반음 몇 개인지 세고, 지판 위의 도형(같은 줄 4칸 위, 옆줄 1칸 위 등)으로 짚는 것. 둘째 층은 <b>색</b>입니다 — 듣는 순간 "아, 장3도의 환함"이라고 몸이 아는 것. 이 훈련은 계산에서 시작하지만, 목적지는 언제나 색입니다. 그래서 매 문항을 손으로 짚는 데서 끝내지 말고, 두 음을 실제로 울려 그 울림의 표정을 함께 저장하십시오.</p><p>가까운 음정들부터 표정을 살펴봅시다. <b>단2도</b>(반음)는 살이 맞닿아 비비는 마찰 — 가장 매운 긴장이며, 영화가 불안을 연출할 때 쓰는 바로 그 소리입니다. <b>장2도</b>(온음)는 계단 한 칸의 중립적인 걸음으로, 멜로디가 흐르는 기본 보폭입니다. 그리고 운명을 가르는 두 3도가 옵니다. <b>단3도</b>는 안으로 접히는 그늘과 우수, <b>장3도</b>는 바깥으로 열리는 환한 확신 — 반음 하나 차이가 마이너와 메이저라는 두 세계를 가릅니다. 3도는 화성의 밝기 스위치입니다.</p><p>중간 거리의 음정들은 저마다 다른 종류의 안정을 다룹니다. <b>완전4도</b>는 열려 있되 판단을 미루는 소리 — 3도처럼 밝기를 말하지 않아서, 나중에 sus4의 "떠 있는 유예"가 바로 이 4도에서 나옵니다. <b>트라이톤</b>(증4도)은 옥타브를 정확히 반으로 가르는 자리로, 어느 쪽으로도 기울지 못한 불안 그 자체입니다 — 중세 사람들이 꺼렸다는 전설이 붙을 만큼, 해소를 강하게 요구하는 소리입니다. <b>완전5도</b>는 그 반대편의 극 — 텅 비어서 오히려 흔들리지 않는 안정입니다. 3도가 없으니 밝지도 어둡지도 않고, 그래서 R과 5도만으로 된 파워코드가 장조 곡에서도 단조 곡에서도 통하는 것입니다.</p><p>먼 음정들은 노래와 향기의 영역입니다. <b>장6도</b>는 달콤하게 노래하는 거리 — 멜로디에 6도 하모니를 붙이면 즉시 이중창이 되는, 3도의 자리바꿈 짝입니다. <b>단7도</b>는 떠나고 싶은 갈망 — 뒤에서 보겠지만 도미넌트7 코드의 그 "앞으로 기우는 힘"이 이 음정의 것입니다. <b>장7도</b>는 옥타브 바로 반음 아래에서 아련하게 비비는 세련된 긴장 — maj7 코드의 저녁빛 같은 향기가 여기서 나옵니다. 그리고 <b>옥타브</b>는 같음의 확인, 원점 회귀입니다.</p><p>이제 이 훈련의 가장 중요한 사슬을 보십시오 — <b>음정의 표정이 그대로 코드의 성격이 됩니다.</b> 장3도 위에 단3도를 쌓으면(R·3·5) 메이저의 확신, 단3도 위에 장3도를 쌓으면(R·♭3·5) 마이너의 그늘. 단3도만 둘 쌓으면(R·♭3·♭5) dim의 불안, 장3도만 둘 쌓으면(R·3·♯5) aug의 뒤틀린 밝음. 여기에 7도를 얹으면 — 장7도는 포근한 maj7, 단7도는 갈망하는 도미넌트7. 특히 도미넌트7 안에서는 3도와 ♭7이 서로 <b>트라이톤</b>을 이루는데, 코드 진행을 앞으로 밀어내는 그 유명한 추진력의 정체가 바로 이 한 음정입니다.</p><p>연습은 쉬운 것부터, 그러나 반드시 귀와 함께 하십시오. 3도와 5도부터 시작해 6도·7도, 마지막에 트라이톤까지 넓히고, 매번 기준음에서 목표 음정 위의 음 이름을 답한 뒤 두 음을 울려서 확인합니다. 여력이 되면 따라 부르십시오 — 성대가 기억한 음정은 좀처럼 사라지지 않습니다. 그리고 좋아하는 곡의 멜로디 두 음이 무슨 음정인지 맞혀 보는 놀이를 곁들이면, 훈련이 귀 전체로 번집니다.</p><p>이것이 되면 두 개의 문이 열립니다. 하나는 <b>계산의 문</b> — 어떤 코드든 구성음을 외우지 않고 음정으로 지판에서 즉석 도출하고, 멜로디에 3도·6도 하모니를 그 자리에서 붙이는 능력. 다른 하나는 <b>귀의 문</b> — 들리는 소리의 거리를 알아채는 능력이며, 이는 채보와 즉흥의 밑바닥입니다. 이후의 폼 해부, 한 음 조작, 타겟 톤 훈련은 전부 이 원자들 위에 지어집니다. 음정은 음악의 주기율표입니다 — 여기 시간을 아끼지 마십시오.</p>',
+ chord:'<p>대부분의 독학자는 코드를 "손모양 사진"으로 기억합니다. F는 이런 모양, B♭은 저런 모양 — 문제는 그 사진 속에 음악이 한 톨도 없다는 것입니다. 이 훈련은 같은 폼을 <b>줄별 도수의 집합</b>으로 다시 보게 합니다. E폼 F를 6번줄부터 한 줄씩 튕기며 "R–5–R(옥타브)–3–5–R"을 소리 내어 읽어 보십시오 — 죽어 있던 사진이 각 층의 역할이 보이는 구조물로 살아납니다. 어느 줄이 밝기를 쥐고 있고 어느 줄이 색을 쥐고 있는지 아는 순간, 코드는 외우는 것에서 조종하는 것으로 바뀝니다.</p><p>구조물의 해부도부터 명확히 합시다. <b>E폼</b>(6번줄 루트)에서는 3도가 3번줄에, 7도가 4번줄에 앉습니다 — 3번줄 한 음을 반음 내리면 F가 Fm이 되고, 4번줄 옥타브 루트를 한 칸 내리면 maj7, 두 칸 내리면 7이 됩니다. <b>A폼</b>(5번줄 루트)에서는 자리가 옮겨져 3도가 2번줄, 7도가 3번줄입니다. <b>D폼</b>(4번줄 루트)에서는 또 달라서 3도가 1번줄, 7도가 2번줄에 삽니다. 같은 "m7 만들기"라도 폼마다 만지는 줄이 다른 이유가 여기 있고, 그래서 폼은 사진이 아니라 <b>도수의 좌석표</b>로 외워야 합니다.</p><p>이제 이 훈련이 만들어 내는 다섯 가지 소리의 표정을 하나씩 살펴봅시다. 먼저 <b>메이저</b> — 한낮의 햇빛, 확신, 도착의 소리입니다. 장3도가 주는 환함 위에 완전5도의 안정이 얹혀, 아무 설명 없이도 "여기가 집"이라고 말합니다. 진행 속에서 메이저 토닉(I)은 이야기가 출발하고 되돌아오는 원점이며, I–IV–V 같은 뼈대 진행의 세 기둥이 전부 메이저인 것은 우연이 아닙니다. 수백 년의 음악이 끝나는 자리에 이 코드를 두어 온 것은, 귀가 이 소리에서 쉬기 때문입니다.</p><p><b>마이너</b>는 같은 자리의 그늘입니다 — 3도가 반음 안으로 접히는 것만으로 확신이 사색으로, 햇빛이 물그림자로 바뀝니다. 다만 마이너를 "슬픈 코드"로만 부르는 것은 절반의 진실입니다. 진지함, 그리움, 안으로 향하는 깊이 — 이 모두가 마이너의 영토입니다. 진행 속에서 마이너는 주로 vi·ii·iii 자리에 살면서 메이저 사이에 음영을 만드는데, 그 유명한 I–V–vi–IV 진행이 좋은 예입니다 — C–G까지 환하게 오르다가 Am에서 문득 그늘로 꺾이는 그 낙차가 이 진행이 수천 곡에 쓰인 이유입니다. 캐논 진행(I–V–vi–iii–IV–I–IV–V) 역시 메이저와 마이너가 번갈아 빛과 그늘을 교차시키는 직물입니다.</p><p><b>도미넌트7</b>은 갈망의 코드, 앞으로 몸이 기우는 소리입니다. 메이저 트라이어드에 ♭7을 얹는 순간, 3도와 ♭7 사이에 <b>트라이톤</b>이 생겨 코드 내부에 풀리고 싶은 긴장이 장전됩니다 — G7의 B와 F가 서로 반음씩 오므라들며 C의 C와 E로 해소되는 것, 이것이 V7→I라는 음악에서 가장 강한 중력입니다. 그래서 도미넌트7의 자리는 종지 직전, 이야기의 "그래서 결국—" 대목입니다. 단 하나의 큰 예외가 블루스입니다 — 블루스에서는 I도 IV도 V도 전부 7 코드로 치는데, 여기서는 그 긴장이 해소를 기다리는 수단이 아니라 <b>그 자체로 장르의 살결</b>이 됩니다. 같은 코드가 문맥에 따라 엔진도 되고 색깔도 된다는 좋은 교훈입니다.</p><p><b>maj7</b>은 정반대의 7도가 만드는 포근함입니다. 장7도는 루트의 반음 아래에서 아주 은은하게 비비는데, 이 부드러운 마찰이 트라이어드의 단정한 밝음에 저녁빛 같은 향기를 입힙니다. 도미넌트7과 결정적으로 다른 점은 <b>어디로도 가려 하지 않는다는 것</b> — maj7은 그 자리에 머무는 코드입니다. 그래서 쓰임새도 토닉과 그 이웃입니다. 발라드·재즈·시티팝이 Imaj7과 IVmaj7로 시작하고 머무는 이유는, "안정"에 "여운"을 더한 이 소리가 곡 전체의 공기를 한 뼘 부드럽게 만들기 때문입니다. 힘차게 내지르는 록의 후렴에 maj7이 드문 것도 같은 이유에서입니다 — 이 코드는 주먹이 아니라 손바닥의 소리입니다.</p><p><b>m7</b>은 마이너의 우수를 한 번 더 부드럽게 푼 소리입니다. 마이너 트라이어드에 ♭7이 얹히면 그늘의 윤곽이 흐려지면서 단정적인 슬픔 대신 흐르는 듯한 관조가 남습니다 — 비유하자면 마이너가 "슬프다"라고 말한다면 m7은 "슬펐지"라고 말합니다. 이 덜 단정적인 성질 덕에 m7은 진행 속에서 <b>머무는 코드가 아니라 흐르는 코드</b>로 일합니다. 재즈와 팝의 뼈대인 ii–V–I에서 출발점 iim7(예: C조의 Dm7)이 바로 그 역할이고, vi 자리의 m7(Am7)은 토닉의 부드러운 대리인 노릇을 합니다. 같은 Am이라도 Am7로 바꾸는 순간 진행이 눈에 띄게 매끄러워지는 것을 직접 들어 보십시오.</p><p>이 다섯 표정이 한 팔레트에 담기면, 같은 진행도 전혀 다른 옷을 입습니다 — C–Am–F–G를 Cmaj7–Am7–Fmaj7–G7로 바꿔 쳐 보면, 뼈대는 같은데 공기가 달라지는 것이 들릴 것입니다. 이 훈련의 4종 변환(메이저→m, →maj7, →7, m→m7)은 바로 그 팔레트를 실시간으로 쥐는 연습입니다 — 반드시 바뀐 음의 도수를 입으로 말하면서("장3도가 ♭3으로", "루트가 ♭7로") 하십시오. 이 도수 감각이 서면, 다음 단계인 한 음 조작과 셸 보이싱(R·3·7)은 이미 반쯤 배운 것이나 다름없습니다. 사진을 버리고 구조를 보십시오 — 코드는 잡는 것이 아니라 짓는 것입니다.</p>',
+ xform:'<p>sus4, add9, dim, aug — 코드표에서 이런 이름을 만나면 새로 외울 목록이 늘었다고 한숨이 나옵니다. 하지만 진실은 훨씬 다정합니다. <b>이것들은 새 코드가 아니라, 이미 아는 코드에서 단 한 음을 옮긴 결과</b>입니다. sus는 3도의 대체, add9은 9도의 추가, dim과 aug는 5도의 변형 — 조작 지점은 전부 당신이 폼 해부에서 익힌 그 도수들입니다. 그러니 이 훈련의 질문은 "무엇을 새로 외우나"가 아니라 <b>"어느 도수를 어디로 보내나"</b>입니다.</p><p><b>sus4</b>부터 봅시다 — 3도(예: C의 E)를 4도(F)로 밀어 올린 소리입니다. 3도가 자리를 비웠으니 이 코드에는 밝기(장·단)가 없고, 그래서 어느 쪽으로도 기울지 못한 채 <b>떠 있는 유예</b>의 긴장이 생깁니다. 이름의 유래인 "서스펜션(계류)"은 옛 교회음악에서 앞 화음의 음이 다음 화음까지 매달려 있다가 내려와 해소되던 기법 — 즉 sus4는 태생부터 <b>4도가 3도로 내려앉는 순간을 위해 존재하는 코드</b>입니다. 그래서 쓰임새도 해소 직전의 자리입니다. 종지의 V를 Gsus4→G→C처럼 한 번 붙들었다 놓으면 도착이 두 배로 달아지고, D–Dsus4–D 같은 오픈 코드 장식은 한 코드 위에서 지루함을 걷어 내는 가장 오래된 기술입니다. 반드시 sus4 두 박, 메이저 두 박으로 왕복하며 그 해소감을 귀에 새기십시오.</p><p><b>sus2</b>는 같은 원리의 다른 방향 — 3도를 2도로 끌어내린 소리입니다. 4도의 유예가 "매달림"이라면 2도의 소리는 <b>투명하게 비워진 밝음</b>에 가깝습니다. 긴장이라기보다 안개 낀 아침 같은 개방감이라, 해소를 강하게 요구하지 않고 그 자체로 머물 수 있습니다. 여기서 흔한 혼동 하나를 정리해 둡시다 — sus2와 add9은 같은 코드가 아닙니다. <b>sus2는 3도를 버렸고 add9은 3도를 지켰습니다.</b> 그래서 sus2는 성별 없는 투명함이고 add9은 성격을 유지한 착색입니다 — 두 코드를 나란히 쳐서 3도의 유무를 귀로 구분하는 것이 이 단계의 필수 청음입니다.</p><p><b>add9</b>은 트라이어드 위에 9도(옥타브 위의 2도)를 얹은 소리 — 한마디로 <b>반짝임</b>입니다. 9도는 루트의 온음 위에서 은은하게 물결치는데, 3도가 그대로 있으니 코드의 정체성은 조금도 흔들리지 않고 표면의 윤기만 더해집니다. 성격을 바꾸지 않고 조명만 바꾸는 조작 — 그래서 add9의 자리는 색이 필요한 곳입니다. 발라드의 인트로 아르페지오, 어쿠스틱 곡의 첫 코드가 유독 add9인 이유가 그것이고, C–Am–F–G 같은 평범한 진행도 Cadd9와 Fadd9로 갈아 끼우면 같은 곡이 한 등급 촉촉해집니다. 긴장을 만들지 않으니 해소할 의무도 없다는 점에서, add9은 이 목록에서 가장 부담 없는 색연필입니다.</p><p><b>dim</b>은 5도를 반음 내려(R·♭3·♭5) 만든, 이 팔레트에서 가장 불안한 소리입니다. 단3도만 둘 쌓인 이 구조는 루트와 ♭5 사이에 트라이톤을 품고 있어, 듣는 순간 발밑이 한 칸 꺼지는 듯한 스릴이 생깁니다. 그래서 dim은 머무는 코드가 아니라 <b>지나가는 코드, 즉 다리</b>입니다 — 가장 흔한 쓰임이 두 코드 사이의 반음 경과로, C에서 Dm으로 갈 때 그 사이 반음 자리(D♭)에 dim을 끼우면 베이스가 반음씩 계단을 오르며 두 코드가 미끄러지듯 이어집니다. 재즈와 옛 가요, 캐럴에서 이 반음 다리를 수없이 듣게 될 것입니다. 또 하나의 얼굴은 다이어토닉의 vii°로, 도미넌트의 사촌으로서 토닉으로 기우는 힘을 나눠 갖습니다 — 어느 쪽이든 dim의 본질은 "다음"을 가리키는 손가락입니다.</p><p><b>aug</b>는 반대로 5도를 반음 올린(R·3·♯5) 소리 — <b>위로 떠오르려는 욕구</b>입니다. 장3도만 둘 쌓여 옥타브를 정확히 삼등분하는 이 대칭 구조는 중심이 없어서, 밝은데 어딘가 뒤틀린 몽환적 표정을 짓습니다. 그 정체는 ♯5가 반음 위로 올라가고 싶어 하는 힘이고, 그래서 aug의 정석 쓰임은 상행 라인의 중간 계단입니다 — C→Caug→Am을 쳐 보면 내부에서 G→G♯(A♭)→A로 한 음이 반음씩 오르며 두 코드를 잇는 것이 들립니다. 옛 영화음악의 인트로, 절에서 후렴으로 넘어가는 전환부의 그 묘하게 붕 뜨는 순간 — 거기 aug가 있습니다. dim이 반음 "다리"라면 aug는 반음 "에스컬레이터"입니다.</p><p>다섯 조작을 관통하는 원리를 붙잡으십시오 — <b>긴장이란 제자리를 벗어난 도수이고, 벗어난 음은 반드시 가고 싶은 곳이 있습니다.</b> sus4의 4도는 3도로 내려앉고 싶어 하고, aug의 ♯5는 위로 오르고 싶어 하고, dim은 통째로 반음 위의 코드에 기대고 싶어 합니다. 그러니 이 코드들을 단독 음향으로 외우지 말고, 항상 앞뒤 코드를 붙인 <b>연결 문맥</b>으로 연습하십시오 — "이 소리가 어디로 가고 싶어 하는가"를 듣는 귀가 이 단계의 진짜 수확입니다. 그 귀가 생기면 코드표 없는 곡에서도 다음 코드가 반쯤 예측됩니다.</p><p>연습 자체는 이미 배운 폼 위에서 손가락 하나의 일입니다 — 아는 코드를 잡고, 빠진 음과 새 음의 도수를 입으로 말하며("3도가 4도로", "5도가 ♯5로") 한 음만 옮기십시오. 호출에 3초 안에 변형이 나오면, 이 코드들은 암기 목록이 아니라 <b>실시간으로 꺼내 쓰는 물감</b>이 됩니다. 반주 중 "여기 긴장을 걸자"면 sus4, "밋밋하니 윤기를 입히자"면 add9, "다음 코드로 미끄러지자"면 dim, "떠오르는 전환을 만들자"면 aug — 화가가 팔레트에서 색을 고르듯 고르게 되는 것입니다. 좋아하는 곡의 한 대목에 이 물감 하나를 직접 칠해 보는 것으로 매 세션을 마무리하십시오.</p>',
+ shell:'<p>좋은 반주자에게는 하나의 역설이 있습니다. 음을 많이 쳐서가 아니라 <b>덜어내서</b> 더 또렷하게 들린다는 것입니다. 7th 코드는 R·3·5·7의 네 음으로 되어 있지만, 그중 5도는 루트의 배음 속에 이미 들어 있는 "텅 빈 안정"이라 코드의 성격에 거의 아무것도 보태지 않습니다. 그래서 5도와 중복음을 걷어내고 R·3·7만 남긴 것이 셸(껍데기) 보이싱입니다. 뼈대만 남겼는데도 코드의 정체는 오히려 더 선명해집니다 — 남긴 음이 바로 정체를 담은 음이기 때문입니다.</p><p>그 두 음, 3도와 7도를 <b>가이드 톤</b>이라 부릅니다. 역할이 정확히 나뉘어 있습니다. <b>3도는 성격(장·단)을 정하고, 7도는 색(어떤 종류의 7th인가)을 정합니다.</b> Cmaj7에서 이 둘은 E·B이고, C7에서는 E·B♭, Cm7에서는 E♭·B♭입니다. 겨우 한두 음의 반음 차이가 세 개의 전혀 다른 세계를 가릅니다. 이 훈련에서 세 코드를 나란히 쳐 보며 그 차이를 귀에 새기는 이유가 여기 있습니다.</p><p>먼저 <b>maj7의 색</b>. 장3도 위에 장7도 — 루트의 바로 반음 아래 음이 함께 울립니다. 이 아슬아슬한 근접이 maj7 특유의 아련하고 달콤한, 공중에 정지한 듯한 울림을 만듭니다. 중요한 것은 maj7이 <b>어디로도 가려 하지 않는 코드</b>라는 점입니다. 도착해서 머무는 소리, 저녁 빛 같은 소리 — 그래서 발라드의 I 코드, 조용한 착지 자리에 쓰입니다.</p><p>다음 <b>도미넌트7의 색</b>. 장3도와 ♭7 — 이 둘은 서로 트라이톤이라는 가장 불안정한 음정을 이룹니다. C7의 E와 B♭은 각각 반음만 움직이면 F와 A, 즉 F 코드의 품에 안깁니다. 그래서 도미넌트7은 <b>앞으로 기울어진 코드</b>입니다. 진행을 다음으로 밀어내는 엔진이며, V7→I 해소의 주인공입니다. 블루스에서는 이 긴장을 해소하지 않고 그 자체를 색으로 눌러앉히기도 합니다 — 같은 음들이 문맥에 따라 갈망이 되기도, 체취가 되기도 합니다.</p><p>그리고 <b>m7의 색</b>. ♭3과 ♭7 — 마이너의 어두움인데, 트라이어드 마이너보다 모서리가 둥글게 다듬어져 있습니다. 슬픔이라기보다 <b>차분한 우수</b>에 가깝고, 강하게 주장하지 않아서 어디에나 잘 섞입니다. 그래서 m7은 진행 속에서 주로 "준비하는 자"의 역할을 맡습니다 — ii 자리에 앉아 V를 예비하는, 이야기의 도입부 같은 코드입니다.</p><p>이 세 색이 모이면 재즈의 심장인 <b>ii–V–I</b>이 됩니다. 그리고 여기서 셸의 가장 아름다운 광경이 펼쳐집니다. Dm7의 가이드 톤은 F·C, G7은 F·B, Cmaj7은 E·B — 코드가 바뀔 때마다 <b>단 한 성부만 반음씩 흘러내립니다</b> (C→B, 그다음 F→E). 두 목소리가 번갈아 한 걸음씩 양보하는 이 지그재그가, 코드가 세 번 바뀌는데도 물 흐르듯 들리는 이유입니다. 보이스 리딩이라는 큰 주제의 가장 작은, 가장 완전한 모형입니다.</p><p>재즈와 발라드 반주가 셸을 쓰는 실전적 이유도 분명합니다. 밴드에서는 베이스가 이미 루트를 울리고 있으므로, 기타가 R까지 치면 음역이 겹쳐 소리가 탁해집니다. 3·7만 치면 베이스와 부딪히지 않고, 피아노가 얹는 텐션과도 충돌하지 않으며, 손이 남으니 9도·13도 같은 색을 위에 <b>얹을 공간</b>이 생깁니다. 여섯 줄 바레보다 음량도 다루기 쉬워, 노래 뒤에서 받쳐 주는 반주가 됩니다.</p><p>연습할 때는 반드시 도수를 소리 내어 말하십시오 — "R·3·7", 그리고 나아가 R을 빼고 3·7만으로도 색이 남는지 확인하십시오. maj7↔7↔m7을 같은 루트에서 오가며 <b>어느 도수가 반음 움직였는지</b>를 귀와 입으로 좇는 것이 핵심입니다. 이 두 음은 뒤에 배울 타겟 톤과 정확히 같은 음입니다 — 반주에서 익힌 가이드 톤이 솔로의 착지점이 됩니다. 적은 음으로 더 많이 말하는 법, 그것이 셸입니다.</p>',
+ slash:'<p>C/E, C/G 같은 표기를 처음 보면 복잡한 새 코드처럼 보여 긴장하게 됩니다. 하지만 이것은 "C 코드를 잡되 최저음만 E로 하라"는 단순한 지시일 뿐입니다. 이 훈련이 정말 가르치려는 것은 표기법 너머의 한 가지 깨달음입니다 — <b>코드에서 가장 낮은 음이 그 화음의 무게중심과 진행 전체의 흐름을 결정한다</b>는 것. 분수 코드는 그 무게중심을 손으로 옮기는 기술입니다.</p><p>왜 최저음이 그렇게 중요할까요. 우리 귀는 여러 음이 울릴 때 <b>가장 낮은 음을 뿌리로, 가장 높은 음을 멜로디로</b> 듣도록 되어 있습니다. 그래서 최저음들의 움직임은 코드 진행과는 별개의, <b>그 자체로 독립된 두 번째 멜로디</b>가 됩니다. 좋은 편곡이란 위층의 화성과 아래층의 베이스 선율, 이 두 층을 동시에 설계하는 일입니다. 분수 코드는 기타 한 대로 그 두 층을 모두 쥐는 손잡이입니다.</p><p>가장 사랑받는 쓰임은 <b>하행 베이스</b>입니다. C → C/B → Am → Am/G → F 를 쳐 보십시오. 코드는 C에서 Am으로 완만히 흐를 뿐인데, 최저음은 C–B–A–G–F로 한 계단씩 내려갑니다. 이 하행이 애수를 띠는 데는 이유가 있습니다 — 한 걸음씩 가라앉는 선은 우리 귀에 한숨이나 낙하 같은 <b>중력의 정서</b>로 들리기 때문입니다. 바로크 시대에 탄식을 그리는 데 쓰였던 하행 베이스의 전통이 오늘의 수많은 발라드 인트로까지 그대로 이어져 있습니다. 위의 화성은 천천히, 아래의 베이스는 꾸준히 — 이 속도 차이가 진행을 믿을 수 없이 매끄럽게 만듭니다.</p><p>반대로 <b>상행 베이스는 고조</b>를 만듭니다. C → C/E → F 에서 최저음은 C–E–F로 층계를 오르고, 음악은 점점 차오르는 느낌을 받습니다. 후렴 직전의 빌드업에 상행 베이스가 자주 쓰이는 이유입니다. 여기서 3도를 베이스로 둔 코드(C/E 같은 1전위)의 성격이 드러납니다 — 루트가 바닥일 때의 확정적인 무게가 사라지고, <b>다음 코드로 건너가려는 가벼운 다리</b>가 됩니다. C/E는 C이면서도 이미 반쯤 F를 향해 몸을 기울이고 있습니다.</p><p>5도를 베이스로 둔 코드(C/G 같은 2전위)는 또 다른 얼굴입니다. G 위에 얹힌 C 코드는 미묘하게 <b>불안정하고 해결을 원하는</b> 소리를 냅니다. 그래서 이 형태는 예로부터 종지 직전, V 코드 앞에 놓여 "이제 끝맺음이 온다"를 예고하는 자리에 쓰였습니다. 같은 세 음인데 무엇을 바닥에 두느냐로 안정·유동·긴장이 갈린다는 것 — 분수 코드는 트라이어드 전위의 정서를 진행 속에서 체험하는 훈련이기도 합니다.</p><p>또 하나의 강력한 쓰임이 <b>페달 포인트</b>입니다. 이번에는 베이스를 한 음에 고정하고 위의 코드만 바꾸는 것입니다 — 이를테면 C를 계속 울리며 그 위로 F/C, G/C를 지나가는 식입니다. 땅은 멈춰 있는데 하늘만 움직이는 이 상태는 <b>정지 속의 긴장</b>을 차곡차곡 쌓습니다. 인트로에서 기대를 모으거나, 곡 중간에 숨을 고르는 브레이크다운에서 이 원리가 쓰입니다. 하행·상행이 베이스를 멜로디로 쓰는 법이라면, 페달은 베이스를 닻으로 쓰는 법입니다.</p><p>연습할 때는 반드시 <b>최저음만 따로 노래해 보십시오.</b> 진행을 치면서 입으로는 베이스 라인을 부르는 것입니다 — 그 선이 노래가 되는 순간, 분수 코드를 이해한 것입니다. 각 베이스음이 코드의 몇 도인지(3도인지 5도인지)도 말하십시오. 표기가 아니라 흐름을 듣는 귀가 목표입니다.</p><p>이 감각은 그대로 보이스 리딩(Phase 5)의 "베이스 라인 설계"로 이어집니다. 코드 네임 위에 얹힌 분수는 두려워할 기호가 아니라, 작곡가가 베이스라는 두 번째 멜로디를 어떻게 그렸는지 보여 주는 <b>설계도의 일부</b>입니다. 이제 당신도 그 설계를 읽고, 직접 그릴 수 있습니다.</p>',
+ triad:'<p>코드를 "여섯 줄을 다 누르는 손모양"으로만 알고 있으면, 지판의 특정 자리에 갇힙니다. 하지만 코드의 본질은 단 세 음 — R·3·5 — 이고, 여섯 줄 그립의 나머지는 전부 그 세 음의 중복입니다. 세 음만 세 줄에 올려 잡는 것이 트라이어드이며, 이것이 손에 들어오는 순간 <b>지판 전체가 좁은 구역 단위로 열립니다.</b> 오픈 코드 근처에만 살던 연주자가 12프렛까지를 자기 땅으로 만드는 관문이 여기입니다.</p><p>세 음 중 어느 음을 바닥에 두느냐로 <b>기본형·1전위·2전위</b>의 세 모양이 나오는데, 이 셋은 같은 코드이면서도 정서가 다릅니다. <b>기본형(R이 바닥)은 안정</b>입니다 — 루트가 땅을 딛고 서서 "나는 C다"라고 선언하는, 확정적이고 묵직한 소리. 곡의 시작과 끝, 딱 잘라 말해야 할 자리의 소리입니다.</p><p><b>1전위(3도가 바닥)는 유동</b>입니다. 무게중심이 루트에서 벗어나 있어, 서 있다기보다 걸음을 옮기는 중인 소리가 납니다 — 분수 코드에서 본 C/E가 F로 몸을 기울이던 바로 그 성질입니다. <b>2전위(5도가 바닥)는 긴장</b>입니다. 가장 불안정한 배치라서 귀가 해결을 기다리게 되며, 클래식 화성학이 이 형태의 사용처를 조심스럽게 다뤄 온 것도 그 때문입니다. 안정 — 유동 — 긴장. 같은 세 음의 세 표정을 구분해 듣는 것이 이 훈련의 절반입니다.</p><p>나머지 절반이 <b>전위 사다리</b>입니다. 한 스트링셋 위에서 세 형태를 낮은 위치부터 높은 위치로 연달아 오르면, 하나의 코드가 지판을 따라 흐르는 강처럼 이어져 있음을 보게 됩니다. 오를 때마다 최저음의 도수(R, 3, 5)를 반드시 소리 내어 말하십시오 — 모양을 외우는 것이 아니라, 지금 어떤 배치를 잡고 있는지 아는 것이 목적입니다.</p><p>스트링셋을 옮길 때 만나는 "접힘"도 피하지 말고 정면으로 이해하십시오. 기타의 줄들은 완전4도 간격으로 조율되어 있지만 <b>오직 3번줄(G)과 2번줄(B) 사이만 장3도</b>입니다. 그래서 2번줄이 끼는 스트링셋에서는 같은 트라이어드의 도형이 한 프렛 접힙니다. 이것을 예외 암기로 처리하면 스트링셋마다 남남이 되지만, 조율의 결과로 이해하면 모든 모양이 하나의 논리로 꿰어집니다.</p><p>그렇다면 <b>구역 연주가 합주에서 왜 그토록 중요한가.</b> 두 대의 기타가 똑같이 낮은 오픈 코드를 치면 같은 음역이 겹쳐 소리가 탁해집니다. 한 대가 오픈 코드를 맡을 때 다른 한 대가 7~10프렛의 하이 트라이어드로 올라가면, 두 악기는 서로 다른 층에서 울리며 갑자기 편곡에 공간이 생깁니다. 건반·베이스가 있는 밴드라면 더욱 그렇습니다 — 트라이어드는 "남의 음역을 비켜 주면서도 화성을 말하는" 합주의 예의이자 기술입니다.</p><p>구역 제한 훈련("5프렛 감옥")의 진짜 의미도 여기 있습니다. Am–F–C–G 같은 진행을 5~9프렛 안에서만 치려면, 각 코드마다 <b>가장 가까운 전위</b>를 골라야 합니다. 이 선택이 곧 최소 이동의 보이스 리딩이고, 코드 전환이 손 이동이 아니라 한두 손가락의 걸음이 되는 순간 반주는 비약적으로 매끄러워집니다.</p><p>마지막으로, 이 3음 블록은 화음으로 쌓으면 반주지만 한 음씩 펼치면 아르페지오, 곧 <b>솔로의 뼈대</b>가 됩니다. Phase 4에서 코드 진행을 따라가는 솔로를 만들 때, 손이 짚을 지도가 바로 지금 익히는 트라이어드 모양들입니다. 좁은 구역 안에서 코드도 잡고 라인도 긋는 자유 — 그것이 이 훈련의 끝에 있습니다.</p>',
+ target:'<p>처음 즉흥 연주를 시도한 사람은 거의 예외 없이 같은 벽에 부딪힙니다. "스케일 안의 음만 골라 쳤는데, 왜 내 솔로에서는 코드 진행이 안 들리지?" 이유는 간단합니다 — 스케일의 일곱 음이 모두 평등하지 않기 때문입니다. 어떤 음은 지금 울리는 코드를 그려 주지만, 어떤 음은 그저 스쳐 지나갈 뿐입니다. 코드가 바뀌는 순간 새 코드의 <b>3도나 7도에 정확히 착지하는 것</b>, 그 착지음이 타겟 톤입니다.</p><p>"코드를 노래하는 솔로"라는 말의 의미를 분명히 해 둡시다. 위대한 솔리스트들의 라인은 반주를 전부 꺼도 <b>선율만으로 코드 진행이 들립니다.</b> 라인 자체가 화성을 품고 있기 때문입니다. 반대로 스케일을 오르내리기만 하는 솔로는 반주가 사라지는 순간 정체를 잃습니다. 타겟 톤 훈련은 바로 그 차이 — 반주에 얹힌 솔로와 반주를 품은 솔로의 차이 — 를 만드는 훈련입니다.</p><p>왜 하필 3도와 7도인가. 셸 보이싱에서 배운 <b>가이드 톤과 정확히 같은 음</b>이기 때문입니다. 3도는 코드의 성격(장·단)을, 7도는 색을 담고 있어 "지금 이 코드가 누구인지"를 밝혀 줍니다. 반면 루트와 5도는 이웃한 여러 코드에 공통으로 들어 있어 정체를 뚜렷이 말해 주지 못합니다 — 예컨대 C라는 음은 C의 R이면서 F의 5도, Am의 ♭3이기도 합니다. 반주에서 코드의 심장이던 음이, 솔로에서는 착지점이 됩니다.</p><p>다음으로 <b>강박과 약박의 심리</b>를 이해해야 합니다. 우리 귀는 모든 음을 같은 무게로 듣지 않습니다 — <b>강박에 오는 음으로 화성을 판정하고, 약박의 음은 장식으로 흘려듣습니다.</b> 그래서 강박(특히 코드가 바뀌는 첫 박)에 구성음이 놓이면 라인 전체가 "맞게" 들리고, 약박에서는 스케일 음이든 반음 경과음이든 상당히 자유롭게 지나갈 수 있습니다. 그물의 매듭만 제자리에 있으면 그 사이의 실은 어떻게 엮여도 아름답습니다 — 착지점만 통제하고 사이는 풀어 주십시오.</p><p>3도 착지와 7도 착지는 색이 다릅니다. <b>3도 착지는 선명하고 확정적</b>입니다. 새 코드의 밝음이나 어두움을 첫 박에 즉시 선언하므로, 듣는 사람의 귀에 코드 체인지가 가장 또렷하게 새겨집니다. 노래하기 쉽고 안정감이 있어, 이 훈련이 3도를 먼저 시키는 이유이기도 합니다. Am에서 Dm으로 넘어가는 첫 박에 F(Dm의 3도)를 딛는 순간을 몸으로 확인해 보십시오.</p><p><b>7도 착지는 떠 있는, 미해결의 색</b>입니다. 구성음이라 틀린 소리는 아니지만 완전히 내려앉지 않아서, 라인이 계속 앞으로 가고 싶어 하는 성숙한 뉘앙스가 생깁니다. 그리고 7도에는 특별한 성질이 하나 있습니다 — <b>다음 코드의 3도로 반음 흘러내리는 일이 많다</b>는 것입니다. Dm7의 7도 C는 G7의 3도 B로, 반음 하나만 미끄러지면 됩니다. 7도에 착지하는 법을 익히면 착지점들끼리 이어지는 선이 생기고, 솔로에 방향이 생깁니다.</p><p>연습은 반드시 느리게 하십시오. 코드가 바뀌기 <b>전에</b> 다음 착지음이 머릿속에 그려져 있어야 합니다 — 진행을 외우고, 각 코드의 3도를 즉답할 수 있는 상태에서 시작하는 것입니다. 처음엔 3도만, 다음엔 7도만, 그다음 3도와 7도를 번갈아. 착지 사이를 잇는 음은 적어도 좋습니다. 두 마디에 두 음뿐이어도 착지가 정확하면 코드가 들리고, 백 음을 쏟아도 착지가 없으면 들리지 않습니다.</p><p>이 훈련이 완성되면 솔로와 반주가 별개의 기술이 아니게 됩니다. 반주는 가이드 톤을 쌓아 코드를 말하고, 솔로는 같은 음을 펼쳐 코드를 노래합니다 — <b>같은 화성 언어의 두 가지 발음</b>일 뿐입니다. 코드 진행을 따라 걷는 솔로, 그것이 이 착지 훈련의 끝에서 당신을 기다립니다.</p>',
+ dia:'<p>지금까지 코드를 하나하나 "낱개"로 다뤄 왔다면, 이 훈련은 그것들을 하나의 <b>가족</b>으로 묶습니다. 한 조(key)의 메이저 스케일 위에 3도씩 쌓으면 일곱 개의 코드가 태어납니다 — C조라면 C·Dm·Em·F·G·Am·B°. 이것이 다이어토닉이며, 여기서 결정적인 것은 코드의 이름이 아니라 <b>각자가 맡은 역할(기능)</b>입니다. 같은 G 코드도 C조에서는 V, D조에서는 IV — 이름은 하나지만 역할은 조가 정합니다. 일곱 식구의 얼굴을 하나씩 만나 봅시다.</p><p><b>I은 귀향</b>입니다. 모든 긴장이 풀리고 이야기가 쉬는 집 — 곡이 시작하는 곳이자 끝내 돌아오는 곳입니다. 그리고 <b>vi는 그 집의 그늘진 방</b>입니다. C조의 Am은 C와 두 음(C·E)을 나눠 갖고 있어서, I과 거의 같은 자리에 서 있으면서 빛깔만 어둡습니다. 그래서 vi는 "슬픈 얼굴의 토닉" — 진행이 I로 돌아올 듯하다가 vi에 내려앉으면, 집에 왔는데 불이 꺼져 있는 듯한 우수가 생깁니다.</p><p><b>IV는 넓어짐</b>입니다. I에서 IV로 가는 순간 창문이 열리듯 시야가 트이며, 여정이 시작됩니다 — 안정을 잃지 않으면서 집을 떠나는, 서브도미넌트의 온화한 출발입니다. <b>ii는 준비하는 자</b>입니다. C조의 Dm은 F와 두 음(F·A)을 공유해 IV와 같은 계열의 일을 하지만, 성격이 더 조용하고 기능이 더 뚜렷합니다 — V의 완전5도 위에서 V를 정조준하는 예비 동작. 재즈가 IV 대신 ii를 즐겨 쓰는 이유가 이 "V를 향해 몸을 굽힌 자세"에 있습니다.</p><p><b>V는 갈망</b>입니다. C조의 G가 7도를 얹어 G7이 되면 그 안의 3도(B)와 ♭7(F)이 트라이톤을 이루고, B는 반음 위의 C로, F는 반음 아래의 E로 — 즉 I 코드의 품으로 — 풀리고 싶어 합니다. 집으로 돌아가려는 이 힘이 조성 음악 전체를 굴리는 엔진입니다. <b>vii°는 순수한 이끌림</b>입니다. B°(B·D·F)는 G7에서 루트를 뺀 나머지와 같습니다 — 말하자면 뿌리 없는 V7. 스스로 서 있지 못하고 모든 음이 I 쪽으로 기울어져 있어, 단독으로 쉬는 자리로는 쓰이지 않고 I로 미끄러져 들어가는 경과의 순간에 삽니다.</p><p>가장 규정하기 어려운 식구가 <b>iii — 애매한 그늘</b>입니다. C조의 Em(E·G·B)은 I과 두 음(E·G)을, V와도 두 음(G·B)을 나눠 갖고 있어 토닉과 도미넌트 사이에 양다리를 걸치고 있습니다. 그래서 iii는 확실한 안정도 확실한 갈망도 아닌, 서정적이고 유보적인 음영을 만듭니다 — I의 대리로 잠시 서기도 하고, vi로 가는 길목의 경과가 되기도 합니다. 강한 주장이 필요 없는 자리, 감정을 반쯤만 드러내고 싶은 자리의 코드입니다.</p><p>이 역할들을 알면 유명한 진행들이 왜 그렇게 들리는지 풀립니다. <b>ii–V–I</b>은 준비→갈망→귀향이라는 최소한의 완전한 이야기이고, 루트가 D→G→C로 5도씩 하행하는 가장 힘 있는 운동 위에, 셸 보이싱에서 본 가이드 톤의 반음 하행까지 겹쳐 있습니다. <b>I–V–vi–IV</b>는 다른 종류의 마법입니다 — V가 I로 해소될 것 같은 순간 vi로 비껴 내려앉는 위장의 순간이 옅은 우수를 만들고, IV가 시야를 넓힌 뒤 다시 처음으로 이어집니다. 끝나지 않고 순환하는 감정 곡선 — 수많은 팝이 이 네 코드로 몇 분을 버티는 이유입니다.</p><p><b>캐논 진행(I–V–vi–iii–IV–I–IV–V)</b>은 두 원리의 결합입니다. 앞 여섯 코드의 루트가 C–G–A–E–F–C로 그리는 큰 하행의 흐름이 분수 코드에서 배운 "내려가는 베이스의 애수"를 품고, 마지막 IV–V가 바퀴를 다시 처음으로 돌려놓습니다. 내려가며 아련해지고, 끝에서 다시 차오르는 — 수백 년을 살아남은 순환의 설계입니다. 진행이란 결국 떠남과 돌아옴, 긴장과 해소의 이야기이고, 일곱 기능은 그 이야기의 배역들입니다.</p><p>이 상대적 사고가 손에 들어오면 음악이 다르게 보입니다. 낯선 곡의 진행이 "C–G–Am–F"가 아니라 "I–V–vi–IV"로 읽히고, 다음 코드를 <b>예측</b>할 수 있으며, 이조는 "C조의 V가 G이니 D조의 V는 A"처럼 자동 계산이 됩니다. 귀로 곡을 딸 때도 코드 하나하나가 아니라 기능의 흐름을 좇게 되어 속도가 완전히 달라집니다. 여기까지 오면 당신은 코드를 짚는 사람이 아니라 <b>진행을 이해하고 설계하는 사람</b>입니다 — 이 커리큘럼이 처음부터 데려가려던 곳이 바로 여기입니다.</p>'
+};
+function renderOverview(){
+  const o=PHASE_OVERVIEW[S.phase];if(!o||!$('phaseOverview'))return;
+  $('phaseOverview').innerHTML=`<div class="ov-goal">🎯 ${o.goal}</div><div class="ov-desc">${o.desc}</div><div class="ov-crit">✅ 통과 기준 · ${CURRICULUM[S.phase].crit}</div>`;
+}
+// 드릴 카드와 학습 설명 카드가 같은 높이(top)에서 시작하도록 — 높은 쪽을 낮은 쪽에 맞춰 내림
+function alignGuide(){
+  const drill=document.querySelector('.drill-hero'),guide=document.querySelector('.guide-card');
+  if(!drill||!guide)return;
+  drill.style.marginTop='0px';guide.style.marginTop='0px';
+  if(window.innerWidth<=1180)return; // 1단 스택에서는 정렬 불필요
+  const diff=Math.round(drill.getBoundingClientRect().top-guide.getBoundingClientRect().top);
+  if(diff>0)guide.style.marginTop=diff+'px';       // 설명이 위에 있으면 설명을 내림
+  else if(diff<0)drill.style.marginTop=(-diff)+'px'; // 드릴이 위에 있으면 드릴을 내림
+}
+let alignT=null;
+function queueAlign(){clearTimeout(alignT);alignT=setTimeout(alignGuide,40)} // rAF는 창이 가려지면 안 돌므로 타이머 사용
+window.addEventListener('resize',queueAlign);
+window.addEventListener('load',()=>{queueAlign();setTimeout(alignGuide,300)}); // 폰트 로드 등 늦은 레이아웃 변화 대응
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>alignGuide());
+function renderDrillGuide(mode){
+  const el=$('drillGuide');if(!el)return;const g=DRILL_GUIDE[mode];
+  if(!g){el.innerHTML='<div class="muted" style="padding:4px">이 드릴의 설명이 준비되지 않았습니다.</div>';return}
+  el.innerHTML=`<div class="gmode">🎓 ${g.name}</div>
+    ${g.intro?`<div class="g-intro">${g.intro}</div>`:''}
+    <h4>연습 순서</h4><ol>${g.steps.map(s=>`<li>${s}</li>`).join('')}</ol>
+    <h4>무엇을 배우나</h4><div>${g.learn}</div>
+    <h4>음악에 어떻게 쓰나</h4><div>${g.use}</div>
+    ${g.tip?`<div class="g-tip">💡 <b>예시</b> · ${g.tip}</div>`:''}
+    ${DRILL_ESSAY[mode]?`<details class="g-essay"><summary>📖 깊이 읽기 — 이 훈련의 본질</summary>${DRILL_ESSAY[mode]}</details>`:''}`;
+  const es=el.querySelector('.g-essay');if(es)es.addEventListener('toggle',queueAlign);
+  queueAlign();
+}
+// 주차별 드릴 처방 (커리큘럼 각 주차의 훈련법 → 드릴 자동 구성). 키="phase-week"
+// 처방은 "쉬운 필터 → 한 축씩 확장"으로 램프하고, 넘어간 뒤에도 이전 것을 SRS로 계속 복습(Leavitt 계단식).
+const WEEK_RX={
+ '0-0':[{mode:'note',opt:{s:0,n:0,a:0},goal:'6번줄 자연음 3초→2초',cue:'손 아니라 이름으로'},
+        {mode:'rnote',opt:{s:0,fr:0},goal:'즉답',cue:'위치→이름 역방향 인출'}],
+ '0-1':[{mode:'note',opt:{s:1,n:0,a:0},goal:'5번줄 자연음 2초',cue:'이번엔 5번줄만 (새 줄 하나)'},
+        {mode:'note',opt:{s:2,n:0,a:0},goal:'6·5 혼합 자연음 2초',cue:'두 줄이 지도의 기준점'},
+        {mode:'oct',opt:{pair:[0],n:0},goal:'6→5 같은 음',cue:'같은 음의 다른 집 — 먼저 자연음'},
+        {mode:'oct',opt:{pair:[0,1,2],n:0},goal:'6→5→4 +2프렛',cue:'6↔4는 항상 +2프렛'},
+        {mode:'note',opt:{s:2,n:1,a:0},goal:'12음 2초·90% (Phase0 통과)',cue:'사이 음은 B-C·E-F만 반음'}],
+ '1-0':[{mode:'chord',opt:{f:[0],q:[0,1]},goal:'E폼 3도 스위치 5초',cue:'밝기: 장3도↔단3도 먼저'},
+        {mode:'chord',opt:{f:[0],q:[0,1,2,3,4]},goal:'E폼 7도까지 5초',cue:'이제 색: 7·maj7·m7'},
+        {mode:'interval',opt:{iv:[3]},goal:'장3도 즉답',cue:'3도가 성격을 정한다'},
+        {mode:'xform',opt:{pair:[5,6,7]},goal:'변형 5초',cue:'바뀐 음의 도수를 말하며'},
+        {mode:'note',opt:{s:2,n:1,a:0},goal:'음이름 복습',cue:'루트 이름이 폼의 선행'}],
+ '1-1':[{mode:'chord',opt:{f:[1],q:[0,1]},goal:'A폼 3도 스위치 5초',cue:'A폼은 3도가 2번줄'},
+        {mode:'chord',opt:{f:[1],q:[0,1,2,3,4]},goal:'A폼 7도까지 5초',cue:'7도가 3번줄'},
+        {mode:'interval',opt:{iv:[2,3,6]},goal:'단3·장3·완전5도',cue:'코드의 벽돌'},
+        {mode:'note',opt:{s:2,n:1,a:0},goal:'음이름 복습',cue:'루트 이름 유지'}],
+ '1-2':[{mode:'chord',opt:{f:[2],q:[0,1,2,3,4]},goal:'D폼 5초',cue:'D폼 해부'},
+        {mode:'chord',opt:{f:[0,1,2],q:[0,1]},goal:'세 폼 통합 5초 (Phase1 통과)',cue:'같은 코드가 세 구역에'},
+        {mode:'interval',opt:{iv:[3,9,10]},goal:'3도·단7·장7',cue:'7도가 색을 정한다'},
+        {mode:'note',opt:{s:2,n:1,a:0},goal:'음이름 복습',cue:'루트 이름 유지'}],
+ '2-0':[{mode:'triad',opt:{set:[0],zone:[0,1,2],q:[0]},goal:'구성 10초',cue:'탐색 과정이 학습의 본체'},
+        {mode:'chord',opt:{f:[0,1,2],q:[0,1]},goal:'폼 복습',cue:'트라이어드는 폼의 축소판'}],
+ '2-1':[{mode:'triad',opt:{set:[0],zone:[1],q:[0,1]},goal:'지정구역 10초',cue:'구역 안에서 전위 선택'},
+        {mode:'chord',opt:{f:[0,1,2],q:[0,1]},goal:'폼 복습',cue:'폼 유지'}],
+ '2-2':[{mode:'triad',opt:{set:[1],zone:[0,1,2],q:[0,1]},goal:'지정구역 10초',cue:'G–B 경계 접힘 확인'},
+        {mode:'chord',opt:{f:[0,1,2],q:[0,1]},goal:'폼 복습',cue:'폼 유지'}],
+ '2-3':[{mode:'triad',opt:{set:[2],zone:[0,1,2],q:[0,1]},goal:'지정구역 10초',cue:'3·4·5번줄'},
+        {mode:'triad',opt:{set:[0,1,2],zone:[0],q:[0,1]},goal:'지정구역 10초 (Phase2 통과)',cue:'5프렛 감옥 — 어느 구역이든'}],
+ '3-0':[{mode:'xform',opt:{pair:[0,1]},goal:'변형 3초',cue:'3도의 대체 (sus)'},
+        {mode:'chord',opt:{f:[3],q:[5,6]},goal:'구성음 위치',cue:'sus4·sus2를 지판 전체에서'},
+        {mode:'triad',opt:{set:[0,1,2],zone:[0,1,2],q:[0,1]},goal:'구역 복습',cue:'무게중심 유지'}],
+ '3-1':[{mode:'xform',opt:{pair:[2]},goal:'변형 3초',cue:'sus2 vs add9는 3도 유무'},
+        {mode:'chord',opt:{f:[3],q:[7]},goal:'구성음 위치',cue:'add9를 지판 전체에서'},
+        {mode:'triad',opt:{set:[0,1,2],zone:[0,1,2],q:[0,1]},goal:'구역 복습',cue:'무게중심 유지'}],
+ '3-2':[{mode:'xform',opt:{pair:[3,4]},goal:'변형 3초 (Phase3 통과)',cue:'5도의 변형 (dim/aug)'},
+        {mode:'chord',opt:{f:[3],q:[8,9]},goal:'구성음 위치',cue:'dim·aug를 지판 전체에서'},
+        {mode:'triad',opt:{set:[0,1,2],zone:[0,1,2],q:[0,1]},goal:'구역 복습',cue:'무게중심 유지'}],
+ '4-0':[{mode:'triad',opt:{set:[0,1,2],zone:[0,1,2],q:[0,1]},goal:'아르페지오 뼈대 복습',cue:'아르페지오는 트라이어드를 한 음씩'},
+        {mode:'dia',opt:{key:[0,7,9],deg:[0,3,4,5]},goal:'I·IV·V·vi 즉답',cue:'한 조에 사는 코드 (솔로의 선행)'}],
+ '4-1':[{mode:'triad',opt:{set:[0,1,2],zone:[1],q:[0,1]},goal:'한 구역 안에서',cue:'순서·리듬만 바꿔 즉흥'}],
+ '4-2':[{mode:'target',opt:{q:[0,1],t:[0]},goal:'보조 훈련',cue:'이웃음 타겟(3도) 상기 — 주력은 즉흥'}],
+ '4-3':[{mode:'target',opt:{q:[0,1,2,3],t:[0]},goal:'첫 박 3도 착지',cue:'코드가 바뀌면 3도부터'},
+        {mode:'target',opt:{q:[2,4],t:[0,1]},goal:'3↔7 착지 (Phase4 통과)',cue:'7도 착지 버전'}],
+ '5-0':[{mode:'slash',opt:{b:[0,1]},goal:'베이스 라인 설계',cue:'분수코드로 최저음 계단 (C→C/B→Am)'},
+        {mode:'shell',opt:{q:[0,1,2]},goal:'maj7·7·m7의 3·7',cue:'3도가 성격, 7도가 색 (보이스 리딩 뼈대)'},
+        {mode:'xform',opt:{pair:[0,2,5]},goal:'리하모나이즈',cue:'한 음 바꿔 색 실험'},
+        {mode:'triad',opt:{set:[0,1,2],zone:[0,1,2],q:[0,1]},goal:'구역 복습',cue:'무게중심 유지'}]
+};
+function applyRx(r){
+  drill=r.mode;
+  for(const k in r.opt){const v=r.opt[k];dOpt[r.mode][k]=Array.isArray(v)?v.slice():v}
+  document.querySelectorAll('#drillPick .tag').forEach(t=>t.classList.toggle('on',t.dataset.d===r.mode));
+  renderDrillOpts();buildQueue();
+  const g=$('rxGoal');if(g)g.innerHTML='🎯 목표: '+r.goal+' · '+r.cue;
+}
+function flatWeeks(){const a=[];CURRICULUM.forEach((p,pi)=>p.weeks.forEach((w,wi)=>a.push([pi,wi])));return a}
+function nextLink(p,w){
+  const fw=flatWeeks(),i=fw.findIndex(x=>x[0]===p&&x[1]===w);
+  if(i<0||i+1>=fw.length)return '';
+  const [np,nw]=fw[i+1];
+  return `<a class="tp-next" onclick="selectWeek(${np},${nw})">다음 ▸ ${CURRICULUM[np].weeks[nw].label}</a>`;
+}
+function applyWeekRx(p,w){
+  const rx=WEEK_RX[p+'-'+w],bar=$('rxBar');
+  const done=Object.values(S.weeksDone).filter(Boolean).length,total=flatWeeks().length;
+  if(!rx||!rx.length){
+    bar.className='';bar.innerHTML='<div class="rxbanner">이 주차는 <b>실기·즉흥 중심</b>입니다. 아래 <b>자유 연습</b>에서 보조 드릴을 고르세요.</div>';
+    buildQueue();return;
+  }
+  bar.className='today-path';
+  const loc=CURRICULUM[p].name+' · '+CURRICULUM[p].weeks[w].label;
+  const steps=rx.map((r,i)=>`<button class="tp-step ${i===0?'on':''}" data-i="${i}"><span class="tp-n">${i+1}</span>${MODE_LABEL[r.mode]}</button>`).join('');
+  bar.innerHTML=`<div class="tp-head"><span class="tp-loc">${loc}</span><span class="tp-prog">여정 <b>${done}</b> / ${total}주</span></div>
+    <div class="tp-steps">${steps}</div><div class="tp-goal" id="rxGoal"></div>`+nextLink(p,w);
+  bar.querySelectorAll('.tp-step').forEach(c=>c.onclick=()=>{
+    bar.querySelectorAll('.tp-step').forEach((x,ix)=>{x.classList.remove('on');if(ix<+c.dataset.i)x.classList.add('done');else x.classList.remove('done')});
+    c.classList.add('on');applyRx(rx[+c.dataset.i]);
+  });
+  applyRx(rx[0]);
+}
+function optSingle(mode,key,labels){
+  return '<div class="optgrid">'+labels.map((s,i)=>`<span class="tag ${dOpt[mode][key]===i?'on':''}" onclick="setOpt('${mode}','${key}',${i})">${s}</span>`).join('')+'</div>';
+}
+function optMulti(mode,key,labels){
+  return '<div class="optgrid">'+labels.map((s,i)=>`<span class="tag ${dOpt[mode][key].includes(i)?'on':''}" onclick="tog('${mode}','${key}',${i})">${s}</span>`).join('')+'</div>';
+}
+function renderDrillOpts(){
+  const box=$('drillOpts');const D=drillOptDefs;let h='';
+  if(drill==='note'){
+    h+='<h3>줄 범위</h3>'+optSingle('note','s',D.note.strings);
+    h+='<h3>음 범위</h3>'+optSingle('note','n',D.note.notes);
+    h+='<h3>진행</h3>'+optSingle('note','a',D.note.auto);
+  }else if(drill==='rnote'){
+    h+='<h3>줄 범위</h3>'+optSingle('rnote','s',D.rnote.strings);
+    h+='<h3>프렛 범위</h3>'+optSingle('rnote','fr',D.rnote.frets);
+  }else if(drill==='oct'){
+    h+='<h3>줄 이동 (복수)</h3>'+optMulti('oct','pair',D.oct.pairs);
+    h+='<h3>음 범위</h3>'+optSingle('oct','n',D.oct.notes);
+  }else if(drill==='chord'){
+    h+='<h3>폼</h3>'+optMulti('chord','f',D.chord.forms);
+    h+='<h3>코드 종류 (복수)</h3>'+optMulti('chord','q',D.chord.quals);
+  }else if(drill==='xform'){
+    h+='<h3>변형 종류 (복수)</h3>'+optMulti('xform','pair',D.xform.pairs);
+  }else if(drill==='triad'){
+    h+='<h3>스트링셋</h3>'+optMulti('triad','set',D.triad.sets);
+    h+='<h3>구역</h3>'+optMulti('triad','zone',D.triad.zones);
+    h+='<h3>종류</h3>'+optMulti('triad','q',D.triad.quals);
+  }else if(drill==='target'){
+    h+='<h3>코드 종류 (복수)</h3>'+optMulti('target','q',D.target.quals);
+    h+='<h3>타겟 도수 (복수)</h3>'+optMulti('target','t',D.target.targets);
+  }else if(drill==='interval'){
+    h+='<h3>음정 (복수)</h3>'+optMulti('interval','iv',D.interval.ivs);
+  }else if(drill==='dia'){
+    h+='<h3>조성 (복수)</h3>'+optMulti('dia','key',D.dia.keys);
+    h+='<h3>화음도 (복수)</h3>'+optMulti('dia','deg',D.dia.degrees);
+  }else if(drill==='shell'){
+    h+='<h3>코드 종류 (복수)</h3>'+optMulti('shell','q',D.shell.quals);
+  }else if(drill==='slash'){
+    h+='<h3>베이스 위치 (복수)</h3>'+optMulti('slash','b',D.slash.bass);
+  }
+  box.innerHTML=h;
+  renderDrillGuide(drill);
+}
+window.setOpt=(mode,k,v)=>{dOpt[mode][k]=v;renderDrillOpts();buildQueue()};
+window.setN=(k,v)=>{dOpt.note[k]=v;renderDrillOpts();buildQueue()};
+window.tog=(d,k,v)=>{
+  const arr=dOpt[d][k];const ix=arr.indexOf(v);
+  if(ix>=0){if(arr.length>1)arr.splice(ix,1)}else arr.push(v);
+  renderDrillOpts();buildQueue();
+};
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function animBar(sec){
+  const bar=$('dBar');let t0=Date.now();
+  const iv=setInterval(()=>{
+    const p=Math.min(1,(Date.now()-t0)/(sec*1000));
+    bar.style.width=(p*100)+'%';
+    if(p>=1)clearInterval(iv);
+  },50);
+}
+
+/* ---- SM-2 스케줄러 ---- */
+function todayNum(){return Math.floor(Date.parse(today())/86400000)}
+function srsCard(key){if(!S.srs[key])S.srs[key]={ef:2.5,ivl:0,reps:0,lapses:0,due:0,seen:false};return S.srs[key]}
+function newRemaining(){return Math.max(0,(S.srsNewPerDay||20)-((S.srsIntro&&S.srsIntro[todayNum()])||0))}
+function markIntroduced(){const t=todayNum();if(!S.srsIntro)S.srsIntro={};S.srsIntro[t]=(S.srsIntro[t]||0)+1}
+function previewIvl(c,g){
+  if(g===1)return 0;
+  if(c.reps===0)return g===4?4:1;
+  if(c.reps===1)return g===2?3:g===3?6:Math.round(6*c.ef);
+  const mult=c.ef*(g===2?0.8:1)*(g===4?1.3:1);return Math.max(1,Math.round(c.ivl*mult));
+}
+function schedule(c,g){
+  const t=todayNum();
+  if(g===1){c.lapses++;c.reps=0;c.ef=Math.max(1.3,c.ef-0.2);c.ivl=0;}
+  else{c.ivl=previewIvl(c,g);c.reps++;c.ef=Math.max(1.3,c.ef+(g===2?-0.15:g===3?0:0.15));}
+  c.due=t+c.ivl;
+  if(!c.seen){c.seen=true;markIntroduced();}
+}
+function ivlLabel(ivl){return ivl===0?'&lt;10분':ivl+'일'}
+
+/* ---- 후보 카드 열거 (현재 필터 기준) ---- */
+function candidateKeys(){
+  const keys=[];const ALL12=[0,1,2,3,4,5,6,7,8,9,10,11];
+  if(drill==='note'){
+    const pools=[[6],[5],[6,5],[6,5,4]][dOpt.note.s];
+    const notes=dOpt.note.n===0?NATURAL:ALL12;
+    pools.forEach(s=>notes.forEach(n=>keys.push('note:'+s+':'+n)));
+  }else if(drill==='rnote'){
+    const pools=[[6],[5],[6,5],[6,5,4]][dOpt.rnote.s];
+    pools.forEach(s=>{for(let f=0;f<=12;f++){const ni=(OPEN[s]+f)%12;if(dOpt.rnote.fr===0&&!NATURAL.includes(ni))continue;keys.push('rnote:'+s+':'+f)}});
+  }else if(drill==='oct'){
+    const PAIRS=[[6,5],[5,4],[6,4]];
+    const notes=dOpt.oct.n===0?NATURAL:ALL12;
+    dOpt.oct.pair.forEach(pi=>{const pr=PAIRS[pi];notes.forEach(ni=>keys.push('oct:'+pr[0]+':'+ni+':'+pr[1]))});
+  }else if(drill==='chord'){
+    for(let r=0;r<12;r++)dOpt.chord.f.forEach(f=>dOpt.chord.q.forEach(q=>keys.push('chord:'+r+':'+f+':'+q)));
+  }else if(drill==='xform'){
+    for(let r=0;r<12;r++)dOpt.xform.pair.forEach(pi=>keys.push('xform:'+r+':'+pi));
+  }else if(drill==='triad'){
+    for(let r=0;r<12;r++)dOpt.triad.set.forEach(st=>dOpt.triad.zone.forEach(z=>dOpt.triad.q.forEach(q=>keys.push('triad:'+r+':'+st+':'+z+':'+q))));
+  }else if(drill==='target'){
+    for(let r=0;r<12;r++)dOpt.target.q.forEach(qi=>dOpt.target.t.forEach(t=>{const want=t===0?'3':'7';if(degIv(TQ[qi],want)!=null)keys.push('target:'+r+':'+qi+':'+t)}));
+  }else if(drill==='interval'){
+    for(let r=0;r<12;r++)dOpt.interval.iv.forEach(i=>keys.push('interval:'+r+':'+i));
+  }else if(drill==='dia'){
+    dOpt.dia.key.forEach(k=>dOpt.dia.deg.forEach(d=>keys.push('dia:'+k+':'+d)));
+  }else if(drill==='shell'){
+    for(let r=0;r<12;r++)dOpt.shell.q.forEach(q=>keys.push('shell:'+r+':'+q));
+  }else if(drill==='slash'){
+    for(let r=0;r<12;r++)dOpt.slash.b.forEach(b=>keys.push('slash:'+r+':'+b));
+  }
+  return keys;
+}
+
+/* ---- 세션 큐 ---- */
+let queue=[], cur=null, sessDone=0;
+function buildQueue(ahead){
+  clearTimeout(dTimer);
+  const t=todayNum();const cands=candidateKeys();
+  const due=[],neu=[];
+  cands.forEach(k=>{const c=S.srs[k];if(c&&c.seen){if(c.due<=t)due.push(k)}else neu.push(k)});
+  due.sort((a,b)=>S.srs[a].due-S.srs[b].due);shuffle(neu);
+  if(ahead){
+    const future=cands.filter(k=>{const c=S.srs[k];return c&&c.seen&&c.due>t}).sort((a,b)=>S.srs[a].due-S.srs[b].due);
+    queue=due.concat(neu).concat(future).slice(0,40);
+  }else{
+    queue=due.concat(neu.slice(0,newRemaining()));
+  }
+  sessDone=0;updSrsStat();nextCard();
+}
+function counts(){
+  const t=todayNum();let dueN=0,newN=0;
+  candidateKeys().forEach(k=>{const c=S.srs[k];if(c&&c.seen){if(c.due<=t)dueN++}else newN++});
+  return {dueN,newN:Math.min(newN,newRemaining())};
+}
+function updSrsStat(){const {dueN,newN}=counts();$('cNew').textContent=newN;$('cDue').textContent=dueN;$('cDone').textContent=sessDone}
+function nextCard(){
+  clearTimeout(dTimer);$('dAns').innerHTML='';$('dGrades').hidden=true;$('dPre').hidden=false;$('dBar').style.width='0%';
+  cur=queue.shift()||null;
+  if(!cur){renderDone();return}
+  renderFront(cur);
+  const auto=[0,3,2][dOpt.note.a];
+  if(drill==='note'&&auto){animBar(auto);dTimer=setTimeout(revealCard,auto*1000)}
+}
+function renderDone(){
+  $('dq').innerHTML=`🎉 <span style="color:var(--good)">오늘 예정 카드 완료!</span><small>모르는 것을 그만큼 줄였습니다.</small>`;
+  $('dPre').hidden=true;$('dGrades').hidden=true;
+  $('dAns').innerHTML=`<button class="btn sm" onclick="buildQueue(true)">＋ 미리 학습 (예정 카드 당겨오기)</button>`;
+}
+function renderFront(key){
+  const p=key.split(':'),A='color:var(--accent)';
+  if(p[0]==='note'){
+    const str=+p[1],note=+p[2];dState={str,note};
+    $('dq').innerHTML=`${str}번줄 · <span style="${A}">${NOTE_F[note]}</span><small>어느 프렛? (소리 내어 답하기)</small>`;
+  }else if(p[0]==='rnote'){
+    const s=+p[1],f=+p[2];dState={s,f};
+    $('dq').innerHTML=`${s}번줄 · <span style="${A}">${f}프렛</span><small>무슨 음? (소리 내어 답하기)</small>`;
+  }else if(p[0]==='oct'){
+    const sSrc=+p[1],ni=+p[2],sTgt=+p[3];const fSrc=(ni-OPEN[sSrc]+24)%12;dState={sSrc,ni,sTgt};
+    $('dq').innerHTML=`${sSrc}번줄 <span style="${A}">${NOTE_F[ni]}</span> (${fSrc}프렛)<small>→ ${sTgt}번줄에서 몇 프렛?</small>`;
+  }else if(p[0]==='chord'){
+    const root=+p[1],form=+p[2],qual=drillOptDefs.chord.quals[+p[3]];dState={root,form,qual};
+    $('dq').innerHTML=`<span style="${A}">${NOTE_F[root]}${chordSym(qual)}</span> — ${drillOptDefs.chord.forms[form]}<small>지판에서 잡아보세요</small>`;
+  }else if(p[0]==='xform'){
+    const r=+p[1],pr=XFORM_PAIRS[+p[2]];dState={r,pr};
+    $('dq').innerHTML=`<span style="${A}">${NOTE_F[r]}${chordSym(pr.base)}</span> → <span style="${A}">${pr.tgt}</span><small>어느 음이 무엇으로 바뀌나?</small>`;
+  }else if(p[0]==='target'){
+    const r=+p[1],qual=TQ[+p[2]],tgt=+p[3];dState={r,qual,tgt};
+    $('dq').innerHTML=`<span style="${A}">${NOTE_F[r]}${chordSym(qual)}</span> 의 <span style="${A}">${tgt===0?'3도':'7도'}</span> 음은?<small>음 이름 말하기</small>`;
+  }else if(p[0]==='interval'){
+    const r=+p[1],iv=+p[2];
+    $('dq').innerHTML=`<span style="${A}">${NOTE_F[r]}</span> 에서 <span style="${A}">${drillOptDefs.interval.ivs[iv]}</span> 위는?<small>음 이름 말하기</small>`;
+  }else if(p[0]==='dia'){
+    const key=+p[1],deg=+p[2];
+    $('dq').innerHTML=`<span style="${A}">${NOTE_F[key]}조</span> · <span style="${A}">${DIA_ROMAN[deg]}</span> 코드는?<small>코드 이름 말하기</small>`;
+  }else if(p[0]==='shell'){
+    const r=+p[1],qual=SHELL_Q[+p[2]];
+    $('dq').innerHTML=`<span style="${A}">${NOTE_F[r]}${qual}</span> 의 셸 보이싱<small>R·3·7 세 음은?</small>`;
+  }else if(p[0]==='slash'){
+    const r=+p[1],b=+p[2];
+    $('dq').innerHTML=`<span style="${A}">${NOTE_F[r]}</span> 코드 · 베이스 <span style="${A}">${drillOptDefs.slash.bass[b]}</span><small>분수코드 표기·베이스음은?</small>`;
+  }else{
+    const root=+p[1],set=drillOptDefs.triad.sets[+p[2]],zone=drillOptDefs.triad.zones[+p[3]],qual=drillOptDefs.triad.quals[+p[4]];dState={root,set,zone,qual};
+    $('dq').innerHTML=`<span style="${A}">${NOTE_F[root]}${qual==='마이너'?'m':''}</span> 트라이어드<small>${set} · ${zone} 안에서 구성</small>`;
+  }
+}
+function revealCard(){
+  clearTimeout(dTimer);if(!cur)return;
+  const p=cur.split(':');
+  if(p[0]==='note'){
+    const {str,note}=dState;let fret=(note-OPEN[str]+24)%12;let extra=fret===0?' (개방현, 12프렛도)':'';
+    $('dAns').innerHTML=`정답: <b>${fret}프렛</b>${extra}`;beep(660,.12,1);
+  }else if(p[0]==='rnote'){
+    const s=+p[1],f=+p[2];const ni=(OPEN[s]+f)%12;
+    $('dAns').innerHTML=`정답: <b>${NOTE_F[ni]}</b>`;playFret(s,f);
+  }else if(p[0]==='oct'){
+    const ni=+p[2],sTgt=+p[3];const ft=(ni-OPEN[sTgt]+24)%12;let extra=ft===0?' (개방현, 12프렛도)':'';
+    $('dAns').innerHTML=`정답: <b>${sTgt}번줄 ${ft}프렛</b>${extra}`;playFret(sTgt,ft);
+  }else if(p[0]==='xform'){
+    const r=+p[1],pr=XFORM_PAIRS[+p[2]];const b=CHORDS[pr.base],t=CHORDS[pr.tgt];
+    const fmt=(iv,deg)=>`${NOTE_F[(r+iv)%12]}(${deg})`;
+    const removed=b.iv.map((iv,i)=>[iv,b.deg[i]]).filter(o=>!t.iv.includes(o[0]));
+    const added=t.iv.map((iv,i)=>[iv,t.deg[i]]).filter(o=>!b.iv.includes(o[0]));
+    let msg;
+    if(removed.length&&added.length)msg=`${removed.map(o=>fmt(o[0],o[1])).join(', ')} → <b>${added.map(o=>fmt(o[0],o[1])).join(', ')}</b>`;
+    else if(added.length)msg=`<b>${added.map(o=>fmt(o[0],o[1])).join(', ')}</b> 추가`;
+    else msg=`<b>${removed.map(o=>fmt(o[0],o[1])).join(', ')}</b> 제거`;
+    // 전후 구성음 비교 시각화: 각 음을 도수 색 필로, 바뀐 음은 하이라이트
+    const pills=(ch,chgIvs)=>ch.iv.map((iv,i)=>{
+      const chg=chgIvs.includes(iv)?' chg':'';
+      return `<span class="xf-pill${chg}" style="background:${DEGCOLOR(ch.deg[i])}">${NOTE_F[(r+iv)%12]}<small>${ch.deg[i]}</small></span>`;
+    }).join('');
+    const cmp=`<div class="xf-cmp">
+      <div class="xf-row"><span class="xf-name">${NOTE_F[r]}${chordSym(pr.base)}</span><span class="xf-tones">${pills(b,removed.map(o=>o[0]))}</span></div>
+      <div class="xf-mid">↓ ${msg}</div>
+      <div class="xf-row"><span class="xf-name">${NOTE_F[r]}${chordSym(pr.tgt)}</span><span class="xf-tones">${pills(t,added.map(o=>o[0]))}</span></div>
+    </div>`;
+    $('dAns').innerHTML=cmp;
+  }else if(p[0]==='target'){
+    const r=+p[1],qual=TQ[+p[2]],tgt=+p[3],want=tgt===0?'3':'7';const iv=degIv(qual,want);
+    const ch=CHORDS[qual];const deg=ch.deg[ch.iv.indexOf(iv)];
+    $('dAns').innerHTML=`정답: <b>${NOTE_F[(r+iv)%12]}</b> (${deg})`;playPitch((r+iv)%12);
+  }else if(p[0]==='interval'){
+    const r=+p[1],iv=+p[2],note=(r+iv+1)%12;
+    $('dAns').innerHTML=`정답: <b>${NOTE_F[note]}</b>`;playPitch(note);
+  }else if(p[0]==='dia'){
+    const key=+p[1],deg=+p[2];const note=(key+MAJ_SCALE[deg])%12;
+    $('dAns').innerHTML=`정답: <b>${NOTE_F[note]}${DIA_SUF[deg]}</b> (${DIA_ROMAN[deg]} · ${DIA_FUNC[deg]})`;playPitch(note);
+  }else if(p[0]==='shell'){
+    const r=+p[1],qual=SHELL_Q[+p[2]],ch=CHORDS[qual];
+    const pk=w=>ch.iv[ch.deg.findIndex(d=>d.includes(w))];
+    const tones=[pk('R'),pk('3'),pk('7')].map(iv=>NOTE_F[(r+iv)%12]);
+    $('dAns').innerHTML=`정답: <b>${tones.join(' · ')}</b> (R·3·7)\n루트 생략 시 3·7만으로도 색이 남습니다`;
+  }else if(p[0]==='slash'){
+    const r=+p[1],b=+p[2],bn=(r+SLASH_SEMI[b])%12;
+    $('dAns').innerHTML=`정답: <b>${NOTE_F[r]}/${NOTE_F[bn]}</b> — 베이스 ${NOTE_F[bn]} (${drillOptDefs.slash.bass[b]})`;playPitch(bn);
+  }else if(p[0]==='chord'){
+    const {root,form,qual}=dState;const ch=CHORDS[qual];
+    const tones=ch.iv.map(iv=>NOTE_F[(root+iv)%12]).join(' · ');const degs=ch.deg.join(' · ');
+    const rootStr=[6,5,4][Math.min(form,2)];let pos='';
+    if(form<3){const fr=(root-OPEN[rootStr]+24)%12;pos=`루트: ${rootStr}번줄 ${fr===0?'0(개방)':fr}프렛\n`}
+    const hint={0:'E폼: 3도=3번줄 / 7도=4번줄',1:'A폼: 3도=2번줄 / 7도=3번줄',2:'D폼: 3도=1번줄 / 7도=2번줄',3:''}[form]||'';
+    const diag=chordDiagram(root,form,qual);
+    const visual=diag
+      ?`<div style="margin-top:10px;text-align:center">${diag}</div>`
+      :`<div style="margin-top:8px"><div class="muted" style="font-size:11px;margin-bottom:3px">E·A·D 폼 밖의 코드 — 지판 전체에서 구성음 위치</div>${fullNeckDiagram(root,qual)}</div>`;
+    $('dAns').innerHTML=`${pos}구성음: <b>${tones}</b>\n도수: ${degs}${hint?'\n'+hint:''}`+visual;
+  }else{
+    const {root,qual}=dState;const ch=CHORDS[qual];
+    const tones=ch.iv.map(iv=>NOTE_F[(root+iv)%12]).join(' · ');
+    $('dAns').innerHTML=`구성음: <b>${tones}</b> (${ch.deg.join(' · ')})\n지정 구역에서 찾으세요 — 탐색이 학습입니다`;
+  }
+  const c=srsCard(cur);
+  $('g1').innerHTML=ivlLabel(0);
+  $('g2').innerHTML=ivlLabel(previewIvl(c,2));
+  $('g3').innerHTML=ivlLabel(previewIvl(c,3));
+  $('g4').innerHTML=ivlLabel(previewIvl(c,4));
+  $('dPre').hidden=true;$('dGrades').hidden=false;
+}
+window.gradeCard=g=>{
+  if(!cur)return;
+  const c=srsCard(cur);schedule(c,g);sessDone++;
+  if(g===1){const pos=Math.min(queue.length,3+Math.floor(Math.random()*3));queue.splice(pos,0,cur)}
+  beep(g===1?330:720,.1,1);
+  updSrsStat();nextCard();saveS();
+};
+function skipCard(){if(cur)queue.push(cur);nextCard()}
+$('dReveal').onclick=revealCard;
+$('dSkip').onclick=skipCard;
+document.querySelectorAll('#dGrades .gbtn').forEach(b=>b.onclick=()=>gradeCard(+b.dataset.g));
+
+/* ================= 지판 ================= */
+function initFB(){
+  $('fbRoot').innerHTML='<option value="-1">루트 없음</option>'+NOTE_F.map((n,i)=>`<option value="${i}">${n}</option>`).join('');
+  $('fbChord').innerHTML=CHORD_ORDER.map(c=>`<option>${c}</option>`).join('');
+  ['fbMode','fbRoot','fbChord'].forEach(id=>$(id).onchange=drawFB);
+}
+let quizShown={};
+let fbPos=null; // 스케일 포지션 창 시작 프렛 (null=전체)
+function posAnchor(){const root=+$('fbRoot').value;return root<0?1:Math.max(1,(root-OPEN[6]+12)%12)}
+function updPosLbl(){$('fbPosLbl').textContent=fbPos===null?'전체 지판':(fbPos+'–'+(fbPos+3)+'프렛')}
+function stepPos(d){fbPos=fbPos===null?posAnchor():Math.min(9,Math.max(0,fbPos+d));updPosLbl();drawFB()}
+function drawFB(){
+  const svg=$('fb');const mode=$('fbMode').value;
+  const root=+$('fbRoot').value;const chordName=$('fbChord').value;
+  const NF=13, x0=60, y0=28, fw=58, sh=32;
+  const inPos=f=>fbPos===null||(f>=fbPos&&f<=fbPos+3);
+  let h='';
+  // 포지션 창(선택 시) — 노트 뒤에 깔리도록 먼저 그림
+  if(fbPos!==null){
+    const wl=Math.max(2,x0+(fbPos-1)*fw), wr=x0+(fbPos+3)*fw;
+    h+=`<rect x="${wl}" y="${y0-8}" width="${wr-wl}" height="${5*sh+16}" fill="${getCss('--accent-soft')}" opacity="0.55" rx="8"/>`;
+  }
+  // frets
+  for(let f=0;f<=NF;f++){
+    const x=x0+f*fw;
+    h+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0+5*sh}" stroke="${f===0?getCss('--ink'):getCss('--border')}" stroke-width="${f===0?4:1.5}"/>`;
+  }
+  // markers
+  [3,5,7,9].forEach(f=>{h+=`<circle cx="${x0+(f-0.5)*fw}" cy="${y0+2.5*sh}" r="5" fill="${getCss('--surface-3')}"/>`});
+  h+=`<circle cx="${x0+11.5*fw}" cy="${y0+1.5*sh}" r="5" fill="${getCss('--surface-3')}"/><circle cx="${x0+11.5*fw}" cy="${y0+3.5*sh}" r="5" fill="${getCss('--surface-3')}"/>`;
+  // strings + labels
+  for(let s=1;s<=6;s++){
+    const y=y0+(s-1)*sh;
+    h+=`<line x1="${x0}" y1="${y}" x2="${x0+NF*fw}" y2="${y}" stroke="${getCss('--ink-3')}" stroke-width="${0.6+s*0.35}"/>`;
+    h+=`<text x="8" y="${y+4}" font-size="11" fill="${getCss('--ink-3')}">${s}번</text>`;
+  }
+  // fret numbers
+  for(let f=1;f<=12;f++)h+=`<text x="${x0+(f-0.5)*fw}" y="${y0+5*sh+22}" font-size="11" text-anchor="middle" fill="${getCss('--ink-3')}">${f}</text>`;
+  // notes
+  const chordSet={};
+  if(root>=0){CHORDS[chordName].iv.forEach((iv,ix)=>{chordSet[(root+iv)%12]=CHORDS[chordName].deg[ix]})}
+  for(let s=1;s<=6;s++){
+    for(let f=0;f<=12;f++){
+      const ni=(OPEN[s]+f)%12;
+      const cx=f===0?x0-18:x0+(f-0.5)*fw, cy=y0+(s-1)*sh;
+      const deg=chordSet[ni];
+      const key=s+'-'+f;
+      const dim=inPos(f)?'':' opacity="0.15"';
+      if(deg!==undefined){
+        const col=DEGCOLOR(deg);
+        h+=`<g${dim} style="cursor:pointer" onclick="playFret(${s},${f})"><circle cx="${cx}" cy="${cy}" r="12" fill="${col}"/><text x="${cx}" y="${cy+4}" font-size="10.5" font-weight="700" text-anchor="middle" fill="#fff">${deg}</text></g>`;
+      }else if(mode==='all'||(mode==='nat'&&NATURAL.includes(ni))){
+        if(root>=0)continue; // 루트 선택 시 구성음만
+        h+=`<g${dim} style="cursor:pointer" onclick="playFret(${s},${f})"><circle cx="${cx}" cy="${cy}" r="11" fill="${getCss('--surface-3')}" stroke="${getCss('--border')}"/><text x="${cx}" y="${cy+4}" font-size="10" text-anchor="middle" fill="${getCss('--ink-2')}">${NOTE_F[ni]}</text></g>`;
+      }else if(mode==='quiz'&&root<0){
+        if(quizShown[key]){
+          h+=`<g${dim} style="cursor:pointer" onclick="playFret(${s},${f})"><circle cx="${cx}" cy="${cy}" r="11" fill="${getCss('--accent')}"/><text x="${cx}" y="${cy+4}" font-size="10" font-weight="700" text-anchor="middle" fill="#fff">${NOTE_F[ni]}</text></g>`;
+        }else{
+          h+=`<circle cx="${cx}" cy="${cy}" r="11" fill="transparent"${dim} stroke="${getCss('--border')}" stroke-dasharray="2 2" style="cursor:pointer" onclick="qzShow('${key}');playFret(${s},${f})"/>`;
+        }
+      }
+    }
+  }
+  svg.innerHTML=h;
+  // legend
+  let lg='';
+  if(root>=0){
+    const seen={};
+    CHORDS[chordName].deg.forEach(d=>{if(!seen[d]){seen[d]=1;lg+=`<span><i style="background:${DEGCOLOR(d)}"></i>${d}</span>`}});
+    lg+=`<span class="muted">구성음: ${CHORDS[chordName].iv.map(iv=>NOTE_F[(root+iv)%12]).join(' · ')}</span>`;
+  }
+  $('fbLegend').innerHTML=lg;
+  queueAlign(); // 지판 카드 높이 변화(범례 등)에 맞춰 드릴·설명 정렬 갱신
+}
+window.qzShow=k=>{quizShown[k]=1;drawFB();setTimeout(()=>{delete quizShown[k];drawFB()},1500)};
+
+/* ================= 진도 ================= */
+function renderProg(){
+  renderStreak();
+  $('kTotal').textContent=S.log.length;
+  const now=new Date();const wkAgo=new Date(now-6*864e5);
+  $('kWeek').textContent=S.log.filter(l=>new Date(l.date)>=new Date(wkAgo.toDateString())).length;
+  renderRoadmap();
+  renderLog();
+}
+function renderRoadmap(){
+  $('roadmap').innerHTML=CURRICULUM.map((p,pi)=>{
+    const cd=S.critDone[pi];
+    const nm=p.name.replace(/^Phase\s*\d+\s*·\s*/,'');
+    const wkDone=p.weeks.filter((w,wi)=>S.weeksDone[pi+'-'+wi]).length;
+    const weeks=p.weeks.map((w,wi)=>{
+      const done=S.weeksDone[pi+'-'+wi];
+      const cur=(pi===S.phase&&wi===S.week);
+      return `<div class="rm-week ${cur?'cur':''}" onclick="selectWeek(${pi},${wi})">
+        <span class="rm-wk-label">${w.label}</span>
+        <span class="rm-check ${done?'on':''}" onclick="event.stopPropagation();togWk(${pi},${wi})" title="완료 표시">${done?'✓':''}</span>
+      </div>`;
+    }).join('');
+    return `<div class="rm-phase">
+      <div class="rm-ph-head">
+        <span class="rm-ph-num ${cd?'pass':''}">${cd?'✓':pi}</span>
+        <span class="rm-ph-name">${nm}</span>
+        <span class="rm-ph-prog">${wkDone}/${p.weeks.length}</span>
+      </div>
+      ${weeks}
+      <label class="rm-crit ${cd?'passed':''}" title="통과 기준: ${p.crit}"><input type="checkbox" ${cd?'checked':''} onchange="togCrit(${pi})"><span>${cd?'통과 기준 충족 ✓':'통과 기준'}</span></label>
+    </div>`;
+  }).join('');
+  const d=Object.values(S.weeksDone).filter(Boolean).length;
+  if($('rmJfill')){$('rmJfill').style.width=(d/flatWeeks().length*100)+'%';$('rmJdone').textContent=d}
+}
+function renderLog(){
+  $('logList').innerHTML=S.log.length?S.log.slice(0,30).map((l,i)=>
+    `<div class="logitem"><span>${l.memo}<br><span class="muted">${l.phase||''}</span></span><span class="d">${l.date} <a href="#" onclick="delLog(${i});return false" style="color:var(--bad)">✕</a></span></div>`
+  ).join(''):'<p class="muted" style="padding:8px 0">아직 기록이 없습니다. 세션을 완료하거나 메모를 추가하세요.</p>';
+}
+window.togWk=(p,w)=>{const k=p+'-'+w;S.weeksDone[k]=!S.weeksDone[k];renderRoadmap();saveS()};
+window.togCrit=p=>{S.critDone[p]=!S.critDone[p];renderRoadmap();saveS()};
+window.delLog=i=>{S.log.splice(i,1);renderProg();saveS()};
+$('btnAddLog').onclick=()=>{
+  const m=$('logMemo').value.trim();if(!m)return;
+  S.log.unshift({date:today(),phase:'',memo:m});$('logMemo').value='';renderProg();saveS();
+};
+function renderStreak(){
+  const days=[...new Set(S.log.map(l=>l.date))].sort().reverse();
+  let streak=0;let cur=new Date();
+  const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  if(days.length){
+    if(days[0]!==fmt(cur)){cur.setDate(cur.getDate()-1)} // 어제까지 인정
+    for(const d of days){
+      if(d===fmt(cur)){streak++;cur.setDate(cur.getDate()-1)}
+      else break;
+    }
+  }
+  $('streak').textContent=streak;$('kStreak').textContent=streak;
+}
+/* export / import */
+$('btnExport').onclick=()=>{
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='guitar_progress_'+today()+'.json';a.click();
+};
+$('btnImport').onclick=()=>$('fileImport').click();
+$('fileImport').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);S=Object.assign(S,d);fillDefaults();
+    if(met.on)metStop();resetSession();renderProg();drawFB();metSyncUI();applyWeekRx(S.phase,S.week);saveS();alert('기록을 불러왔습니다.')}catch(err){alert('파일 형식이 올바르지 않습니다.')}};
+  r.readAsText(f);
+};
+
+/* ================= init ================= */
+initSession();renderDrillOpts();applyWeekRx(S.phase,S.week);initFB();drawFB();buildNotePad();renderProg();initAuth();
+// 메트로놈 컨트롤
+$('mSlider').oninput=function(){setBpm(+this.value)};
+$('mMinus').onclick=()=>setBpm(S.bpm-1);
+$('mPlus').onclick=()=>setBpm(S.bpm+1);
+$('mTap').onclick=tapTempo;
+$('mToggle').onclick=metToggle;
+document.querySelectorAll('#meterSeg button').forEach(b=>b.onclick=()=>setMeter(b.dataset.m));
+document.querySelectorAll('#subSeg button').forEach(b=>b.onclick=()=>setSubdiv(+b.dataset.s));
+// 소리 설정 모달
+$('metGear').onclick=()=>{$('soundModal').hidden=false};
+$('soundClose').onclick=()=>{$('soundModal').hidden=true};
+$('soundDone').onclick=()=>{$('soundModal').hidden=true};
+$('soundModal').onclick=e=>{if(e.target===$('soundModal'))$('soundModal').hidden=true};
+document.querySelectorAll('#soundSeg button').forEach(b=>b.onclick=()=>{S.metSound=b.dataset.snd;document.querySelectorAll('#soundSeg button').forEach(x=>x.classList.toggle('on',x===b));saveS()});
+$('accHz').oninput=function(){S.accentHz=+this.value;$('accHzLbl').textContent=this.value;saveS()};
+$('weakHz').oninput=function(){S.weakHz=+this.value;$('weakHzLbl').textContent=this.value;saveS()};
+// 지판·소리 컨트롤
+$('btnPlayChord').onclick=playChord;
+$('fbPosPrev').onclick=()=>stepPos(-1);
+$('fbPosNext').onclick=()=>stepPos(1);
+$('fbPosAll').onclick=()=>{fbPos=null;updPosLbl();drawFB()};
+$('octDown').onclick=()=>{octave=Math.max(2,octave-1);$('octLbl').textContent=octave};
+$('octUp').onclick=()=>{octave=Math.min(6,octave+1);$('octLbl').textContent=octave};
+metSyncUI();
+</script>
+</body>
+</html>
