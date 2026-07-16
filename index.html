@@ -176,6 +176,12 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .guide-body li{margin:4px 0}
 .guide-body .g-intro{font-size:13px;color:var(--ink);background:var(--surface);border-radius:8px;padding:9px 11px;margin-bottom:2px;line-height:1.6}
 .guide-body .g-tip{margin-top:13px;font-size:12.5px;background:var(--accent-soft);border-radius:8px;padding:9px 11px;color:var(--ink);line-height:1.6}
+.g-ref table{width:100%;border-collapse:collapse;font-size:12px;line-height:1.55;margin-bottom:8px}
+.g-ref th,.g-ref td{border:1px solid var(--border);padding:5px 7px;text-align:left;vertical-align:top;color:var(--ink-2)}
+.g-ref th{background:var(--surface);color:var(--ink);white-space:nowrap}
+.g-ref td b{color:var(--ink)}
+.g-ref .g-ref-note{font-size:12px;line-height:1.6;color:var(--ink-2)}
+.g-ref .g-ref-note b{color:var(--ink)}
 /* 깊이 읽기 (Leavitt 에세이) */
 .g-essay{margin-top:13px;border-top:1px solid var(--border);padding-top:9px}
 .g-essay>summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--accent);list-style:none}
@@ -1353,7 +1359,17 @@ const DRILL_GUIDE={
  prog:{name:'코드 진행 (구역 제한 + 최소 이동)',intro:'자주 쓰는 진행을 정해진 구역 안에서 — 트라이어드 전위 선택의 실전.',steps:['진행의 각 코드가 무엇인지 확인 (로마숫자 → 코드 이름)','구역 안에서 첫 코드의 전위를 잡는다','다음 코드는 손이 가장 적게 움직이는 전위로','최저음의 도수를 소리 내며 (R/3도/5도 베이스)','정답의 배치와 내 배치를 비교 — 이동 합계가 더 적었나?'],learn:'같은 진행도 구역마다 다른 전위 조합이 된다는 것. 최소 이동이 곧 보이스 리딩.',use:'실전 반주의 핵심 기술 — 지판 한 구역에서 어떤 진행이든 소화하고, 다른 악기와 음역을 나눈다.',tip:'C–F–G를 1·2·3번줄 5~9프렛에서: C 1전위(9-8-8) → F 2전위(5-6-5) → G 2전위(7-8-7) — 여섯 줄 점프 없이 이웃끼리.'},
  triad:{name:'트라이어드 (3음 블록)',intro:'코드를 3음 블록으로 줄여 지판 어디서든 잡기.',steps:['스트링셋에서 3형태(기본형·1전위·2전위)를 직접 탐색','전위 사다리: 낮은→높은 위치로 연달아, 최저음 도수 낭독','구역(프렛 범위)을 제한해 그 안에서만 진행'],learn:'코드를 3음 이동 블록으로. 지판을 좁은 구역 단위로 자유롭게 쓰는 능력.',use:'하이 코드 반주, 좁은 구역 연주, 아르페지오·솔로의 뼈대.',tip:'C(C·E·G)를 1·2·3번줄에서 세 모양(전위)으로. 구역을 옮겨도 같은 C 코드다.'},
  target:{name:'타겟 톤 (3도·7도 착지)',intro:'솔로에서 코드가 바뀌는 순간 노릴 음(3도·7도).',steps:['각 코드의 3도(먼저), 7도 음을 즉답','코드가 바뀌는 첫 박에 새 코드의 3도로 착지','7도 착지, 3↔7 번갈아 착지로 확장'],learn:'코드가 바뀔 때 어느 음을 노리면 "코드를 그리는" 솔로가 되는지.',use:'코드 진행을 따라가는 솔로·필. 강박에 반드시 구성음(특히 3도)을 둔다.',tip:'Am→Dm에서 Dm으로 바뀌는 첫 박에 F(Dm의 3도)에 착지하면 코드가 들리는 솔로가 된다.'},
- dia:{name:'다이어토닉 (조성·화음 기능)',intro:'한 조(key)에 사는 7개 코드와 각자의 역할(기능).',steps:['조(key)를 정하고 I~vii°를 순서대로','V(딸림)·IV(버금딸림)·ii 같은 자주 쓰는 기능부터','같은 코드가 다른 조에서 몇 번인지도 생각'],learn:'한 조에 어떤 코드가 사는지, 각 코드의 기능(으뜸·딸림·버금딸림).',use:'곡의 코드 진행을 조성으로 이해하고, 진행을 예측·작곡하고, 다른 조로 이조한다.',tip:'C조 = C·Dm·Em·F·G·Am·B°. G(V)는 C(I)로 돌아가려는 힘(딸림)을 가진다.'}
+ dia:{name:'다이어토닉 (조성·화음 기능)',intro:'한 조(key)에 사는 7개 코드와 각자의 역할(기능).',steps:['조(key)를 정하고 I~vii°를 순서대로','V(딸림)·IV(버금딸림)·ii 같은 자주 쓰는 기능부터','같은 코드가 다른 조에서 몇 번인지도 생각'],learn:'한 조에 어떤 코드가 사는지, 각 코드의 기능(으뜸·딸림·버금딸림).',use:'곡의 코드 진행을 조성으로 이해하고, 진행을 예측·작곡하고, 다른 조로 이조한다. 키를 알면 나올 코드가 사실상 이 7개로 좁혀지므로, 청음(코드 따기)의 "객관식 후보"가 된다.',
+  ref:`<table><tr><th>도수</th><th>C조</th><th>기능</th><th>역할</th></tr>
+<tr><td><b>I</b></td><td>C</td><td>토닉</td><td><b>집</b> — 이야기가 시작되고 돌아와 쉬는 자리. 곡의 무게중심</td></tr>
+<tr><td><b>ii</b></td><td>Dm</td><td>서브도미넌트</td><td><b>준비하는 자</b> — V의 5도 위에서 V를 정조준 (재즈 ii–V–I의 출발점)</td></tr>
+<tr><td><b>iii</b></td><td>Em</td><td>토닉 대리</td><td><b>애매한 그늘</b> — I·V와 두 음씩 공유하는 양다리. 서정적 경과, I의 약한 대역</td></tr>
+<tr><td><b>IV</b></td><td>F</td><td>서브도미넌트</td><td><b>넓어짐</b> — 창문이 열리듯 집을 떠나는 온화한 출발</td></tr>
+<tr><td><b>V</b></td><td>G</td><td>도미넌트</td><td><b>갈망</b> — 집(I)으로 돌아가려는 힘. 7을 얹으면(G7) 트라이톤으로 추진력 최대</td></tr>
+<tr><td><b>vi</b></td><td>Am</td><td>토닉 대리</td><td><b>불 꺼진 집</b> — I과 두 음을 공유하는 어두운 얼굴. 나란한 마이너 조의 중심</td></tr>
+<tr><td><b>vii°</b></td><td>B°</td><td>도미넌트 대리</td><td><b>뿌리 없는 V7</b> — 모든 음이 I로 기울어 홀로 서지 못하는 경과</td></tr></table>
+<div class="g-ref-note">세 그룹으로 요약 — <b>토닉(I·iii·vi)</b> = 안정 · <b>서브도미넌트(ii·IV)</b> = 떠남·준비 · <b>도미넌트(V·vii°)</b> = 긴장·귀소. 코드 진행은 결국 <b>T → S → D → T</b> 순환(떠남→긴장→귀향)의 변주다.</div>`,
+  tip:'C조 = C·Dm·Em·F·G·Am·B°. G(V)는 C(I)로 돌아가려는 힘(딸림)을 가진다.'}
 };
 // 깊이 읽기 — 각 드릴의 본질을 풀어 쓴 장문 해설 (버클리 교수법 관점의 에세이)
 const DRILL_ESSAY={
@@ -1398,6 +1414,7 @@ function renderDrillGuide(mode){
     <h4>연습 순서</h4><ol>${g.steps.map(s=>`<li>${s}</li>`).join('')}</ol>
     <h4>무엇을 배우나</h4><div>${g.learn}</div>
     <h4>음악에 어떻게 쓰나</h4><div>${g.use}</div>
+    ${g.ref?`<h4>한눈에 보기</h4><div class="g-ref">${g.ref}</div>`:''}
     ${g.tip?`<div class="g-tip">💡 <b>예시</b> · ${g.tip}</div>`:''}
     ${DRILL_ESSAY[mode]?`<details class="g-essay"><summary>📖 깊이 읽기 — 이 훈련의 본질</summary>${DRILL_ESSAY[mode]}</details>`:''}`;
   const es=el.querySelector('.g-essay');if(es)es.addEventListener('toggle',queueAlign);
