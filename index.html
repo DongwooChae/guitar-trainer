@@ -250,6 +250,10 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .weak-item{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--ink-2)}
 .weak-item b{color:var(--ink)}
 .weak-badge{color:var(--bad);white-space:nowrap;font-weight:700}
+/* 코드 진행: 전위 박스 ↔ 전체 지판 연동 */
+.prog-pick{cursor:pointer;border:1px solid transparent;border-radius:9px;padding:5px 7px;transition:border-color .1s}
+.prog-pick:hover{border-color:var(--border)}
+.prog-pick.sel{border-color:var(--accent);background:var(--accent-soft)}
 /* ⭐ 내 카드 집중 학습 */
 .focus-deck{display:block;width:100%;margin:10px 0 0;padding:10px 14px;border:1px dashed var(--warn);border-radius:10px;background:transparent;color:var(--warn);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-align:left}
 .focus-deck:hover{background:var(--surface)}
@@ -693,6 +697,36 @@ function pickProgVoicings(key,pi,si,zi){ // 진행 전체를 최소 이동으로
   return picks;
 }
 const INV_NAME=['기본형 (R 베이스)','1전위 (3도 베이스)','2전위 (5도 베이스)'];
+// 전체 지판 위에 특정 보이싱을 표시 (구역 밴드 + 도수 점) — 전위 박스 호버/클릭 연동용
+function progNeckSVG(pick,si,zi){
+  const NF=12,x0=42,y0=14,fw=46,sh=24,W=x0+NF*fw+16,H=y0+5*sh+20;
+  const bd=getCss('--ink-3'),border=getCss('--border');
+  const [lo,hi]=PROG_ZONES[zi];
+  let g=`<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="max-width:760px;overflow:visible">`;
+  g+=`<rect x="${x0+(lo-1)*fw}" y="${y0-8}" width="${(hi-lo+1)*fw}" height="${5*sh+16}" fill="${getCss('--accent-soft')}" opacity="0.5" rx="8"/>`;
+  for(let f=0;f<=NF;f++){const x=x0+f*fw;g+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0+5*sh}" stroke="${f===0?getCss('--ink'):border}" stroke-width="${f===0?4:1.2}"/>`;}
+  [3,5,7,9].forEach(f=>g+=`<circle cx="${x0+(f-0.5)*fw}" cy="${y0+2.5*sh}" r="4" fill="${getCss('--surface-3')}"/>`);
+  for(let s=1;s<=6;s++){const y=y0+(s-1)*sh;g+=`<line x1="${x0}" y1="${y}" x2="${x0+NF*fw}" y2="${y}" stroke="${bd}" stroke-width="${0.7+s*0.15}"/><text x="${x0-30}" y="${y+4}" font-size="10.5" fill="${bd}">${s}번</text>`;}
+  for(let f=1;f<=12;f++)g+=`<text x="${x0+(f-0.5)*fw}" y="${y0+5*sh+15}" font-size="10" text-anchor="middle" fill="${bd}">${f}</text>`;
+  if(pick&&pick.v){
+    const ivs=pick.ch.min?[0,3,7]:[0,4,7],degL=pick.ch.min?['R','♭3','5']:['R','3','5'];
+    PROG_SETS[si].forEach((s,i)=>{
+      const f=pick.v.frets[i];
+      const ni=(OPEN[s]+f)%12,di=ivs.findIndex(iv=>(pick.ch.root+iv)%12===ni),dl=degL[di]||'';
+      const cx=f===0?x0-13:x0+(f-0.5)*fw, cy=y0+(s-1)*sh;
+      g+=`<g style="cursor:pointer" onclick="playFret(${s},${f})"><circle cx="${cx}" cy="${cy}" r="10" fill="${DEGCOLOR(dl)}"/><text x="${cx}" y="${cy+3.6}" font-size="10" font-weight="700" text-anchor="middle" fill="#fff">${dl}</text></g>`;
+    });
+  }
+  return g+'</svg>';
+}
+window.showProgOnNeck=i=>{
+  const pp=window._progPicks;if(!pp||!pp.picks[i])return;
+  const pk=pp.picks[i];
+  document.querySelectorAll('.prog-pick').forEach((el,ix)=>el.classList.toggle('sel',ix===i));
+  const cap=pk.v?`<b>${pk.ch.name}</b> · ${INV_NAME[pk.v.inv]} — 전체 지판에서의 위치`:pk.ch.name;
+  const el=$('progNeck');
+  if(el)el.innerHTML=`<div class="muted" style="font-size:11.5px;margin:10px 0 2px;text-align:center">${cap}</div>`+progNeckSVG(pk,pp.si,pp.zi);
+};
 function zoneShapeSVG(set,zi,pick){ // 구역만 잘라 보여주는 미니 운지 다이어그램
   const [lo,hi]=PROG_ZONES[zi],cols=hi-lo+1;
   const cw=26,rh=20,x0=24,y0=10,W=x0+cols*cw+8,H=y0+2*rh+26;
@@ -1808,10 +1842,14 @@ function revealCard(){
   }else if(p[0]==='prog'){
     const {k,pi,si,zi}=dState;
     const picks=pickProgVoicings(k,pi,si,zi);
-    window._progPicks={picks,si}; // ▶ 진행 듣기용
-    const items=picks.map(pk=>{
-      if(!pk.v)return `<div style="text-align:center"><b>${pk.ch.name}</b><br><span class="muted">이 구역엔 없음</span></div>`;
-      return `<div style="text-align:center"><div style="font-size:13px"><b>${pk.ch.name}</b> <span class="muted">· ${INV_NAME[pk.v.inv].split(' ')[0]}</span></div>${zoneShapeSVG(PROG_SETS[si],zi,pk)}</div>`;
+    window._progPicks={picks,si,zi}; // ▶ 진행 듣기 · 지판 연동용
+    const tonesOf=ch=>(ch.min?[0,3,7]:[0,4,7]).map((iv,ix)=>spellByOffset(ch.root,iv,[0,2,4][ix])).join('·');
+    const items=picks.map((pk,i)=>{
+      if(!pk.v)return `<div class="prog-pick" data-i="${i}" style="text-align:center"><b>${pk.ch.name}</b><br><span class="muted">이 구역엔 없음</span></div>`;
+      return `<div class="prog-pick" data-i="${i}" style="text-align:center" title="호버/클릭 → 아래 전체 지판에 표시">
+        <div style="font-size:13px"><b>${pk.ch.name}</b> <span class="muted">· ${INV_NAME[pk.v.inv].split(' ')[0]}</span></div>
+        <div class="muted" style="font-size:10.5px;margin:1px 0 2px">${tonesOf(pk.ch)}</div>
+        ${zoneShapeSVG(PROG_SETS[si],zi,pk)}</div>`;
     }).join('');
     const moves=picks.slice(1).map((pk,i)=>pk.v&&picks[i].v?pk.v.frets.reduce((a,f,j)=>a+Math.abs(f-picks[i].v.frets[j]),0):null).filter(x=>x!=null);
     const totalMove=moves.reduce((a,b)=>a+b,0);
@@ -1822,7 +1860,13 @@ function revealCard(){
       <div class="muted" style="font-size:12px;line-height:1.6;margin:4px auto 8px;max-width:640px">💡 ${PROG_WHY[pi]}</div>
       <div class="muted" style="font-size:11.5px;margin-bottom:4px">최소 이동 배치 — 전환당 이동 합계 ${totalMove}칸 · 최저음 도수를 소리 내어 말하기</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">${items}</div>
+      <div id="progNeck"></div>
       <div style="text-align:center;margin-top:8px"><button class="btn sm primary" onclick="playProgPicks()">▶ 진행 듣기</button></div>`;
+    $('dAns').querySelectorAll('.prog-pick').forEach(el=>{
+      el.addEventListener('mouseenter',()=>showProgOnNeck(+el.dataset.i));
+      el.addEventListener('click',()=>showProgOnNeck(+el.dataset.i));
+    });
+    showProgOnNeck(0); // 기본: 첫 코드 표시
   }else if(p[0]==='chord'){
     const {root,form,qual}=dState;const ch=CHORDS[qual];
     const tones=chordTones(root,qual).join(' · ');const degs=ch.deg.join(' · ');
