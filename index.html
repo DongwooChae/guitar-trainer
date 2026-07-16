@@ -514,6 +514,31 @@ const CHORDS = {
   '마이너 펜타토닉':{iv:[0,3,5,7,10],deg:['R','♭3','4','5','♭7']}
 };
 const CHORD_ORDER=['메이저','마이너','7','maj7','m7','sus4','sus2','add9','dim','aug','파워(5)','메이저 스케일','마이너 펜타토닉'];
+/* ===== 도수 기반 음이름 스펠링 =====
+   코드 구성음·음정은 도수가 글자를 정한다: 루트 글자에서 도수만큼 글자를 세고(3도=두 글자 위),
+   실제 반음 수와의 차이를 ♯/♭로 표기. 예: B의 3도=D♯(E♭ 아님), B의 7도=A♯.
+   겹올림/겹내림(♯♯·♭♭)이 되는 극단 케이스만 단순 이명동음(NOTE_F)으로 폴백. */
+const LETTERS=['C','D','E','F','G','A','B'];
+const LETTER_SEMI={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+const ROOT_LETTER=['C','D','D','E','E','F','G','G','A','A','B','B']; // NOTE_F 인덱스별 글자
+function spellByOffset(rootNi,iv,letterOff){ // letterOff: 도수의 글자 간격 (3도=2, 5도=4, 7도=6…)
+  const li=(LETTERS.indexOf(ROOT_LETTER[rootNi])+letterOff)%7;
+  const L=LETTERS[li];
+  const target=(rootNi+iv)%12;
+  let acc=(target-LETTER_SEMI[L]+120)%12; if(acc>6)acc-=12;
+  if(acc<-1||acc>1)return NOTE_F[target]; // 겹기호 폴백
+  return L+(acc===-1?'♭':acc===1?'♯':'');
+}
+function degLetterOff(deg){ // 도수 문자열('R','♭3','7','9'…) → 글자 간격
+  if(deg.includes('11'))return 3; if(deg.includes('13'))return 5; if(deg.includes('9'))return 1;
+  const m={'2':1,'3':2,'4':3,'5':4,'6':5,'7':6};
+  for(const d in m)if(deg.includes(d))return m[d];
+  return 0; // R
+}
+function spellTone(rootNi,iv,deg){return spellByOffset(rootNi,iv,degLetterOff(deg))}
+function chordTones(rootNi,qual){const ch=CHORDS[qual];return ch.iv.map((iv,i)=>spellTone(rootNi,iv,ch.deg[i]))}
+// 인터벌 드릴용: drillOptDefs.interval.ivs 순서(단2~장7)의 글자 간격
+const IV_LETTER_OFF=[1,1,2,2,3,3,4,5,5,6,6];
 const DEGCOLOR = d=>{
   if(d==='R')return getCss('--deg-r');
   if(d.includes('3'))return getCss('--deg-3');
@@ -1320,20 +1345,21 @@ function animBar(sec){
 /* ---- SM-2 스케줄러 ---- */
 function todayNum(){return Math.floor(Date.parse(today())/86400000)}
 function srsCard(key){if(!S.srs[key])S.srs[key]={ef:2.5,ivl:0,reps:0,lapses:0,due:0,seen:false};return S.srs[key]}
-function newRemaining(){return Math.max(0,(S.srsNewPerDay||20)-((S.srsIntro&&S.srsIntro[todayNum()])||0))}
-function markIntroduced(){const t=todayNum();if(!S.srsIntro)S.srsIntro={};S.srsIntro[t]=(S.srsIntro[t]||0)+1}
+// 신규 카드 한도는 드릴 모드별로 따로 센다 (키: "날짜:모드") — 한 드릴이 다른 드릴의 하루치를 잠그지 않게
+function newRemaining(mode){return Math.max(0,(S.srsNewPerDay||20)-((S.srsIntro&&S.srsIntro[todayNum()+':'+mode])||0))}
+function markIntroduced(mode){const k=todayNum()+':'+mode;if(!S.srsIntro)S.srsIntro={};S.srsIntro[k]=(S.srsIntro[k]||0)+1}
 function previewIvl(c,g){
   if(g===1)return 0;
   if(c.reps===0)return g===4?4:1;
   if(c.reps===1)return g===2?3:g===3?6:Math.round(6*c.ef);
   const mult=c.ef*(g===2?0.8:1)*(g===4?1.3:1);return Math.max(1,Math.round(c.ivl*mult));
 }
-function schedule(c,g){
+function schedule(c,g,key){
   const t=todayNum();
   if(g===1){c.lapses++;c.reps=0;c.ef=Math.max(1.3,c.ef-0.2);c.ivl=0;}
   else{c.ivl=previewIvl(c,g);c.reps++;c.ef=Math.max(1.3,c.ef+(g===2?-0.15:g===3?0:0.15));}
   c.due=t+c.ivl;
-  if(!c.seen){c.seen=true;markIntroduced();}
+  if(!c.seen){c.seen=true;markIntroduced((key||'').split(':')[0]||drill);}
 }
 function ivlLabel(ivl){return ivl===0?'&lt;10분':ivl+'일'}
 
@@ -1383,14 +1409,14 @@ function buildQueue(ahead){
     const future=cands.filter(k=>{const c=S.srs[k];return c&&c.seen&&c.due>t}).sort((a,b)=>S.srs[a].due-S.srs[b].due);
     queue=due.concat(neu).concat(future).slice(0,40);
   }else{
-    queue=due.concat(neu.slice(0,newRemaining()));
+    queue=due.concat(neu.slice(0,newRemaining(drill)));
   }
   sessDone=0;updSrsStat();nextCard();
 }
 function counts(){
   const t=todayNum();let dueN=0,newN=0;
   candidateKeys().forEach(k=>{const c=S.srs[k];if(c&&c.seen){if(c.due<=t)dueN++}else newN++});
-  return {dueN,newN:Math.min(newN,newRemaining())};
+  return {dueN,newN:Math.min(newN,newRemaining(drill)),unseenN:newN};
 }
 function updSrsStat(){const {dueN,newN}=counts();$('cNew').textContent=newN;$('cDue').textContent=dueN;$('cDone').textContent=sessDone}
 function nextCard(){
@@ -1402,9 +1428,15 @@ function nextCard(){
   if(drill==='note'&&auto){animBar(auto);dTimer=setTimeout(revealCard,auto*1000)}
 }
 function renderDone(){
-  $('dq').innerHTML=`🎉 <span style="color:var(--good)">오늘 예정 카드 완료!</span><small>모르는 것을 그만큼 줄였습니다.</small>`;
+  const {unseenN}=counts();
+  if(unseenN>0){ // 카드는 남았지만 이 드릴의 오늘 신규 한도에 도달
+    $('dq').innerHTML=`🌙 <span style="color:var(--accent)">이 드릴의 오늘 신규 한도(${S.srsNewPerDay||20}장) 도달</span><small>남은 신규 ${unseenN}장은 내일 이어집니다 — 몰아치지 않는 것도 설계입니다</small>`;
+    $('dAns').innerHTML=`<button class="btn sm" onclick="buildQueue(true)">＋ 그래도 더 학습 (당겨오기)</button>`;
+  }else{
+    $('dq').innerHTML=`🎉 <span style="color:var(--good)">이 드릴의 오늘 카드 완료!</span><small>모르는 것을 그만큼 줄였습니다. 다른 스텝 드릴로 넘어가세요.</small>`;
+    $('dAns').innerHTML=`<button class="btn sm" onclick="buildQueue(true)">＋ 미리 학습 (예정 카드 당겨오기)</button>`;
+  }
   $('dPre').hidden=true;$('dGrades').hidden=true;
-  $('dAns').innerHTML=`<button class="btn sm" onclick="buildQueue(true)">＋ 미리 학습 (예정 카드 당겨오기)</button>`;
 }
 function renderFront(key){
   const p=key.split(':'),A='color:var(--accent)';
@@ -1457,7 +1489,7 @@ function revealCard(){
     $('dAns').innerHTML=`정답: <b>${sTgt}번줄 ${ft}프렛</b>${extra}`;playFret(sTgt,ft);
   }else if(p[0]==='xform'){
     const r=+p[1],pr=XFORM_PAIRS[+p[2]];const b=CHORDS[pr.base],t=CHORDS[pr.tgt];
-    const fmt=(iv,deg)=>`${NOTE_F[(r+iv)%12]}(${deg})`;
+    const fmt=(iv,deg)=>`${spellTone(r,iv,deg)}(${deg})`;
     const removed=b.iv.map((iv,i)=>[iv,b.deg[i]]).filter(o=>!t.iv.includes(o[0]));
     const added=t.iv.map((iv,i)=>[iv,t.deg[i]]).filter(o=>!b.iv.includes(o[0]));
     let msg;
@@ -1467,7 +1499,7 @@ function revealCard(){
     // 전후 구성음 비교 시각화: 각 음을 도수 색 필로, 바뀐 음은 하이라이트
     const pills=(ch,chgIvs)=>ch.iv.map((iv,i)=>{
       const chg=chgIvs.includes(iv)?' chg':'';
-      return `<span class="xf-pill${chg}" style="background:${DEGCOLOR(ch.deg[i])}">${NOTE_F[(r+iv)%12]}<small>${ch.deg[i]}</small></span>`;
+      return `<span class="xf-pill${chg}" style="background:${DEGCOLOR(ch.deg[i])}">${spellTone(r,iv,ch.deg[i])}<small>${ch.deg[i]}</small></span>`;
     }).join('');
     const cmp=`<div class="xf-cmp">
       <div class="xf-row"><span class="xf-name">${NOTE_F[r]}${chordSym(pr.base)}</span><span class="xf-tones">${pills(b,removed.map(o=>o[0]))}</span></div>
@@ -1478,24 +1510,24 @@ function revealCard(){
   }else if(p[0]==='target'){
     const r=+p[1],qual=TQ[+p[2]],tgt=+p[3],want=tgt===0?'3':'7';const iv=degIv(qual,want);
     const ch=CHORDS[qual];const deg=ch.deg[ch.iv.indexOf(iv)];
-    $('dAns').innerHTML=`정답: <b>${NOTE_F[(r+iv)%12]}</b> (${deg})`;playPitch((r+iv)%12);
+    $('dAns').innerHTML=`정답: <b>${spellTone(r,iv,deg)}</b> (${deg})`;playPitch((r+iv)%12);
   }else if(p[0]==='interval'){
     const r=+p[1],iv=+p[2],note=(r+iv+1)%12;
-    $('dAns').innerHTML=`정답: <b>${NOTE_F[note]}</b>`;playPitch(note);
+    $('dAns').innerHTML=`정답: <b>${spellByOffset(r,iv+1,IV_LETTER_OFF[iv])}</b>`;playPitch(note);
   }else if(p[0]==='dia'){
     const key=+p[1],deg=+p[2];const note=(key+MAJ_SCALE[deg])%12;
-    $('dAns').innerHTML=`정답: <b>${NOTE_F[note]}${DIA_SUF[deg]}</b> (${DIA_ROMAN[deg]} · ${DIA_FUNC[deg]})`;playPitch(note);
+    $('dAns').innerHTML=`정답: <b>${spellByOffset(key,MAJ_SCALE[deg],deg)}${DIA_SUF[deg]}</b> (${DIA_ROMAN[deg]} · ${DIA_FUNC[deg]})`;playPitch(note);
   }else if(p[0]==='shell'){
     const r=+p[1],qual=SHELL_Q[+p[2]],ch=CHORDS[qual];
     const pk=w=>ch.iv[ch.deg.findIndex(d=>d.includes(w))];
-    const tones=[pk('R'),pk('3'),pk('7')].map(iv=>NOTE_F[(r+iv)%12]);
+    const tones=['R','3','7'].map(w=>{const i=ch.deg.findIndex(d=>d.includes(w));return spellTone(r,ch.iv[i],ch.deg[i])});
     $('dAns').innerHTML=`정답: <b>${tones.join(' · ')}</b> (R·3·7)\n루트 생략 시 3·7만으로도 색이 남습니다`;
   }else if(p[0]==='slash'){
     const r=+p[1],b=+p[2],bn=(r+SLASH_SEMI[b])%12;
     $('dAns').innerHTML=`정답: <b>${NOTE_F[r]}/${NOTE_F[bn]}</b> — 베이스 ${NOTE_F[bn]} (${drillOptDefs.slash.bass[b]})`;playPitch(bn);
   }else if(p[0]==='chord'){
     const {root,form,qual}=dState;const ch=CHORDS[qual];
-    const tones=ch.iv.map(iv=>NOTE_F[(root+iv)%12]).join(' · ');const degs=ch.deg.join(' · ');
+    const tones=chordTones(root,qual).join(' · ');const degs=ch.deg.join(' · ');
     const rootStr=[6,5,4][Math.min(form,2)];let pos='';
     if(form<3){const fr=(root-OPEN[rootStr]+24)%12;pos=`루트: ${rootStr}번줄 ${fr===0?'0(개방)':fr}프렛\n`}
     const hint={0:'E폼: 3도=3번줄 / 7도=4번줄',1:'A폼: 3도=2번줄 / 7도=3번줄',2:'D폼: 3도=1번줄 / 7도=2번줄',3:''}[form]||'';
@@ -1506,7 +1538,7 @@ function revealCard(){
     $('dAns').innerHTML=`${pos}구성음: <b>${tones}</b>\n도수: ${degs}${hint?'\n'+hint:''}`+visual;
   }else{
     const {root,qual}=dState;const ch=CHORDS[qual];
-    const tones=ch.iv.map(iv=>NOTE_F[(root+iv)%12]).join(' · ');
+    const tones=chordTones(root,qual).join(' · ');
     $('dAns').innerHTML=`구성음: <b>${tones}</b> (${ch.deg.join(' · ')})\n지정 구역에서 찾으세요 — 탐색이 학습입니다`;
   }
   const c=srsCard(cur);
@@ -1518,7 +1550,7 @@ function revealCard(){
 }
 window.gradeCard=g=>{
   if(!cur)return;
-  const c=srsCard(cur);schedule(c,g);sessDone++;
+  const c=srsCard(cur);schedule(c,g,cur);sessDone++;
   if(g===1){const pos=Math.min(queue.length,3+Math.floor(Math.random()*3));queue.splice(pos,0,cur)}
   beep(g===1?330:720,.1,1);
   updSrsStat();nextCard();saveS();
@@ -1597,7 +1629,7 @@ function drawFB(){
   if(root>=0){
     const seen={};
     CHORDS[chordName].deg.forEach(d=>{if(!seen[d]){seen[d]=1;lg+=`<span><i style="background:${DEGCOLOR(d)}"></i>${d}</span>`}});
-    lg+=`<span class="muted">구성음: ${CHORDS[chordName].iv.map(iv=>NOTE_F[(root+iv)%12]).join(' · ')}</span>`;
+    lg+=`<span class="muted">구성음: ${chordTones(root,chordName).join(' · ')}</span>`;
   }
   $('fbLegend').innerHTML=lg;
   queueAlign(); // 지판 카드 높이 변화(범례 등)에 맞춰 드릴·설명 정렬 갱신
