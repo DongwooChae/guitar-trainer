@@ -1242,7 +1242,7 @@ const drillOptDefs={
   note:{strings:['6번줄','5번줄','6·5 혼합','6·5·4 혼합'],notes:['자연음만','12음 전체'],auto:['수동','3초 자동','2초 자동']},
   rnote:{strings:['6번줄','5번줄','6·5 혼합','6·5·4 혼합'],frets:['앵커(자연음) 프렛','0~12 전체']},
   read:{grps:['높은 음역 (오선 안)','중간 음역 (오선 아래쪽)','낮은 음역 (아래 덧줄)','전체 음역'],notes:['자연음만','임시표 포함']},
-  oct:{pairs:['6→5번줄','5→4번줄','6→4번줄'],notes:['자연음만','12음 전체']},
+  oct:{pairs:['6↔5번줄','5↔4번줄','6↔4번줄'],notes:['자연음만','12음 전체']},
   chord:{forms:['E폼','A폼','D폼','폼 자유'],quals:['메이저','마이너','7','maj7','m7','sus4','sus2','add9','dim','aug']},
   xform:{pairs:['메이저→sus4','메이저→sus2','메이저→add9','메이저→aug','마이너→dim','메이저→마이너','메이저→7','메이저→maj7']},
   triad:{sets:['1·2·3번줄','2·3·4번줄','3·4·5번줄'],zones:['1~5프렛','5~9프렛','9~12프렛'],quals:['메이저','마이너']},
@@ -1413,8 +1413,8 @@ const WEEK_RX={
  '0-1':[{mode:'note',opt:{s:0,n:0,a:0},seg:'warm',goal:'6번줄 복습 2초',cue:'어제 것부터 확실히'},
         {mode:'note',opt:{s:1,n:0,a:0},seg:'main',goal:'5번줄 자연음 2초',cue:'이번엔 5번줄만 (새 줄 하나)'},
         {mode:'note',opt:{s:2,n:0,a:0},seg:'main',goal:'6·5 혼합 자연음 2초',cue:'두 줄이 지도의 기준점'},
-        {mode:'oct',opt:{pair:[0],n:0},seg:'main',goal:'6→5 같은 음',cue:'같은 음의 다른 집 — 먼저 자연음'},
-        {mode:'oct',opt:{pair:[0,1,2],n:0},seg:'main',goal:'6→5→4 +2프렛',cue:'6↔4는 항상 +2프렛'},
+        {mode:'oct',opt:{pair:[0],n:0},seg:'main',goal:'6↔5 같은 음 (양방향)',cue:'같은 음의 다른 집 — 먼저 자연음'},
+        {mode:'oct',opt:{pair:[0,1,2],n:0},seg:'main',goal:'6↔5↔4 왕복',cue:'6↔4는 ±2프렛 (내려갈 땐 -2)'},
         {mode:'note',opt:{s:2,n:1,a:0},seg:'app',goal:'12음 2초·90% (Phase0 통과)',cue:'사이 음은 B-C·E-F만 반음'}],
  '1-0':[{mode:'note',opt:{s:2,n:1,a:0},seg:'warm',goal:'음이름 복습',cue:'루트 이름이 폼의 선행'},
         {mode:'read',opt:{g:0,n:0},seg:'warm',goal:'악보 읽기 — 높은 음역',cue:'운지가 아니라 음을 읽어라'},
@@ -1649,7 +1649,7 @@ function candidateKeys(){
   }else if(drill==='oct'){
     const PAIRS=[[6,5],[5,4],[6,4]];
     const notes=dOpt.oct.n===0?NATURAL:ALL12;
-    dOpt.oct.pair.forEach(pi=>{const pr=PAIRS[pi];notes.forEach(ni=>keys.push('oct:'+pr[0]+':'+ni+':'+pr[1]))});
+    dOpt.oct.pair.forEach(pi=>{const pr=PAIRS[pi];notes.forEach(ni=>{keys.push('oct:'+pr[0]+':'+ni+':'+pr[1]);keys.push('oct:'+pr[1]+':'+ni+':'+pr[0])})}); // 양방향 — 역방향은 별개의 인출 경로
   }else if(drill==='chord'){
     for(let r=0;r<12;r++)dOpt.chord.f.forEach(f=>dOpt.chord.q.forEach(q=>keys.push('chord:'+r+':'+f+':'+q)));
   }else if(drill==='xform'){
