@@ -182,6 +182,10 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .g-ref td b{color:var(--ink)}
 .g-ref .g-ref-note{font-size:12px;line-height:1.6;color:var(--ink-2)}
 .g-ref .g-ref-note b{color:var(--ink)}
+/* 인터벌 정답 — 음정이 사는 코드 행 (호버 → 지판 연동) */
+.iv-row{display:grid;grid-template-columns:76px 1fr;gap:8px;align-items:baseline;padding:5px 10px;border:1px solid transparent;border-radius:8px;cursor:pointer}
+.iv-row:hover,.iv-row.sel{background:var(--surface-2);border-color:var(--border)}
+.iv-row .iv-name{color:var(--ink)}
 /* 깊이 읽기 (Leavitt 에세이) */
 .g-essay{margin-top:13px;border-top:1px solid var(--border);padding-top:9px}
 .g-essay>summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--accent);list-style:none}
@@ -1329,6 +1333,13 @@ function fullNeckDiagram(root,qual){
   }
   return g+'</svg>';
 }
+window.showIvChord=i=>{ // 인터벌 정답의 코드 행 호버/클릭 → 전체 지판에 그 코드 구성음 표시
+  const list=window._ivChords;if(!list||!list[i])return;
+  document.querySelectorAll('.iv-row').forEach((el,ix)=>el.classList.toggle('sel',ix===i));
+  const c=list[i],el=$('ivNeck');
+  if(el)el.innerHTML=`<div style="font-size:12.5px;margin:10px 0 0;color:var(--ink-2)">${c.name} — 전체 지판 (점 클릭 = 소리)</div>`+fullNeckDiagram(c.root,c.qual);
+  if(typeof queueAlign==='function')queueAlign();
+};
 // xform: 코드 한 음 조작(변형)의 base→target 쌍
 const XFORM_PAIRS=[
   {base:'메이저',tgt:'sus4'},{base:'메이저',tgt:'sus2'},{base:'메이저',tgt:'add9'},
@@ -1877,18 +1888,23 @@ function revealCard(){
       8:'장6도는 6코드(R·3·5·6)와 13 텐션의 재료 — 단3도를 뒤집은 거리입니다'};
     let extra='';
     if(pick.length){
-      const rows=pick.map(m=>{
+      window._ivChords=pick.map(m=>({root:r,qual:m.q,name:rt.name+(m.q==='파워(5)'?'5':chordSym(m.q))}));
+      const rows=pick.map((m,i)=>{
         const sym=m.q==='파워(5)'?'5':chordSym(m.q);
         const tones=m.ch.iv.map((civ,j)=>{
           const t=spellByOffset(r,civ,degLetterOff(m.ch.deg[j]),rt.letter);
           const name=j===m.di?`<b style="color:var(--accent)">${t}</b>`:t;
           return `${name}<span class="muted" style="font-size:11px">(${m.ch.deg[j]})</span>`});
-        return `<div style="margin-top:3px"><b>${rt.name}${sym}</b> — ${tones.join(' · ')}</div>`}).join('');
-      extra=`<div style="font-size:13px;margin-top:10px;white-space:normal;line-height:1.6"><div class="muted" style="font-size:11.5px">이 음정이 사는 코드 (${rt.name} 루트):</div>${rows}</div>`;
+        return `<div class="iv-row" onmouseenter="showIvChord(${i})" onclick="showIvChord(${i})"><b class="iv-name">${rt.name}${sym}</b><span>${tones.join(' · ')}</span></div>`}).join('');
+      extra=`<div style="font-size:13px;margin-top:12px;white-space:normal;line-height:1.6;max-width:560px;margin-left:auto;margin-right:auto;text-align:left">
+        <div class="muted" style="font-size:11.5px;padding-left:10px;margin-bottom:4px">이 음정이 사는 코드 (${rt.name} 루트) — 올려놓으면 아래 지판에 구성음이 표시됩니다</div>${rows}</div>
+        <div id="ivNeck" style="white-space:normal"></div>`;
     }else if(IV_NOTE[iv]){
       extra=`<div class="muted" style="font-size:12px;margin-top:10px;white-space:normal;line-height:1.6">${IV_NOTE[iv]}</div>`;
     }
-    $('dAns').innerHTML=`정답: <b>${spellByOffset(r,iv+1,IV_LETTER_OFF[iv],rt.letter)}</b>${extra}`;playPitch(note);
+    $('dAns').innerHTML=`정답: <b>${spellByOffset(r,iv+1,IV_LETTER_OFF[iv],rt.letter)}</b>${extra}`;
+    if(pick.length)showIvChord(0);
+    playPitch(note);
   }else if(p[0]==='dia'){
     const key=+p[1],deg=+p[2];const note=(key+MAJ_SCALE[deg])%12;
     $('dAns').innerHTML=`정답: <b>${spellByOffset(key,MAJ_SCALE[deg],deg)}${DIA_SUF[deg]}</b> (${DIA_ROMAN[deg]} · ${DIA_FUNC[deg]})`;playPitch(note);
