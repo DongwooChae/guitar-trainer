@@ -563,6 +563,27 @@ function staffSVG(midi,name){
   else s+=`<line x1="${cx-7.5}" y1="${y+2}" x2="${cx-7.5}" y2="${y+38}" stroke="${ink}" stroke-width="1.8"/>`;
   return s+'</svg>';
 }
+// 같은 음(유니즌)의 모든 지판 위치 (0~12프렛)
+function pitchLocations(midi){
+  const locs=[];for(let s=1;s<=6;s++){const f=midi-OPEN_MIDI[s];if(f>=0&&f<=12)locs.push([s,f])}
+  return locs;
+}
+// 유니즌 위치를 12프렛 전체 지판에 표시하는 미니 다이어그램
+function unisonNeckDiagram(midi){
+  const locs=pitchLocations(midi);
+  const NF=12,x0=42,y0=14,fw=46,sh=24,W=x0+NF*fw+16,H=y0+5*sh+20;
+  const bd=getCss('--ink-3'),border=getCss('--border'),acc=getCss('--accent');
+  let g=`<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="max-width:760px;overflow:visible">`;
+  for(let f=0;f<=NF;f++){const x=x0+f*fw;g+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0+5*sh}" stroke="${f===0?getCss('--ink'):border}" stroke-width="${f===0?4:1.2}"/>`;}
+  [3,5,7,9].forEach(f=>g+=`<circle cx="${x0+(f-0.5)*fw}" cy="${y0+2.5*sh}" r="4" fill="${getCss('--surface-3')}"/>`);
+  for(let s=1;s<=6;s++){const y=y0+(s-1)*sh;g+=`<line x1="${x0}" y1="${y}" x2="${x0+NF*fw}" y2="${y}" stroke="${bd}" stroke-width="${0.7+s*0.15}"/><text x="${x0-30}" y="${y+4}" font-size="10.5" fill="${bd}">${s}번</text>`;}
+  for(let f=1;f<=12;f++)g+=`<text x="${x0+(f-0.5)*fw}" y="${y0+5*sh+15}" font-size="10" text-anchor="middle" fill="${bd}">${f}</text>`;
+  locs.forEach(([s,f])=>{
+    const cx=f===0?x0-13:x0+(f-0.5)*fw, cy=y0+(s-1)*sh;
+    g+=`<g style="cursor:pointer" onclick="playFret(${s},${f})"><circle cx="${cx}" cy="${cy}" r="10" fill="${acc}"/><text x="${cx}" y="${cy+3.6}" font-size="9.5" font-weight="700" text-anchor="middle" fill="#fff">${f}</text></g>`;
+  });
+  return g+'</svg>';
+}
 const DEGCOLOR = d=>{
   if(d==='R')return getCss('--deg-r');
   if(d.includes('3'))return getCss('--deg-3');
@@ -1140,7 +1161,7 @@ const PHASE_OVERVIEW=[
 const DRILL_GUIDE={
  note:{name:'음 찾기 (음이름 → 위치)',intro:'지판의 각 칸이 무슨 음인지 즉시 아는 것 — 모든 이론의 출발점.',steps:['프렛 점 위치의 자연음(앵커)부터 외운다 (0=E,3=G,5=A,7=B,8=C,10=D,12=E)','사이 음은 "B-C·E-F만 반음(1칸)" 규칙으로 채운다','6번줄 → 5번줄, 한 줄씩 확실히','반응을 3초 → 2초 → 1초로 줄인다'],learn:'지판의 절대 좌표. 상대적 모양(블록)에 키 이름을 붙이는 기준점.',use:'파워코드·바레코드의 루트를 즉시 찾아 어떤 키로든 이동하고, 악보의 음을 지판에서 바로 짚는다.',tip:'6번줄 8프렛 = C. 이 한 점을 알면 C 파워코드·C 바레코드가 모두 거기서 나온다.'},
  rnote:{name:'역방향 (위치 → 음이름)',intro:'이름→위치의 반대 방향. 짚은 자리가 무슨 음인지 바로 튀어나오게.',steps:['아무 프렛이나 짚고 그 음 이름을 즉답','자연음 프렛부터, 익으면 반음 포함','6번줄이 되면 5번줄로 확장'],learn:'음이름→위치의 반대 신경 경로. 양방향이 되어야 진짜 아는 것.',use:'연주 중 지금 짚은 음이 무슨 음인지 인지 → 즉흥·편곡에서 방향 감각을 만든다.',tip:'5번줄 3프렛을 짚었다 → "C". 솔로 중 내 손이 어느 음을 누르는지 알게 된다.'},
- read:{name:'악보 읽기 (오선 → 지판)',intro:'오선지의 음을 보고 이름과 위치를 즉답 — Leavitt 교본의 첫 번째 목표.',steps:['1·2번줄(음이 오선 안에 앉아 읽기 쉬움)부터','3·4번줄 → 5·6번줄(아래 덧줄)로 확장','자연음이 익으면 임시표(♭·♯) 포함','운지가 아니라 음을 읽는다 — 이름을 소리 내며'],learn:'악보라는 공용어. 기타 기보는 실음보다 1옥타브 높게 적힌다는 관례.',use:'밴드 차트·리얼북·새 곡을 악보로 바로 연주(초견). 기타 밖의 음악 세계와 연결된다.',tip:'아래 덧줄 3개 밑의 음 = 6번줄 개방 E. 덧줄은 매번 세지 말고 앵커로 외운다.'},
+ read:{name:'악보 읽기 (오선 → 지판)',intro:'오선지의 음을 보고 이름과 위치를 즉답 — Leavitt 교본의 첫 번째 목표.',steps:['1·2번줄(음이 오선 안에 앉아 읽기 쉬움)부터','3·4번줄 → 5·6번줄(아래 덧줄)로 확장','자연음이 익으면 임시표(♭·♯) 포함','정답에서 같은 음의 모든 지판 위치(유니즌)를 확인 — 12프렛까지','운지가 아니라 음을 읽는다 — 이름을 소리 내며'],learn:'악보라는 공용어. 기타 기보는 실음+1옥타브 관례, 그리고 한 음이 지판 여러 곳에 산다는 것.',use:'밴드 차트·리얼북·새 곡을 악보로 바로 연주(초견). 기타 밖의 음악 세계와 연결된다.',tip:'아래 덧줄 3개 밑의 음 = 6번줄 개방 E. 덧줄은 매번 세지 말고 앵커로 외운다.'},
  oct:{name:'옥타브 셔틀 (같은 음의 다른 자리)',intro:'같은 음이 지판 여러 곳에 있다 — 그 지도를 손에 넣기.',steps:['한 음을 정하고 6→5→4번줄에서 같은 음을 찾는다','6↔4번줄은 "+2프렛" 규칙을 눈으로 확인','12음 전체로 넓힌다'],learn:'지판 위 같은 피치의 여러 위치(옥타브·유니슨 형태).',use:'옥타브 주법, 보이싱을 다른 구역으로 옮기기, 멜로디를 다른 옥타브로 재배치.',tip:'6번줄 5프렛 A → 4번줄 7프렛에도 같은 A(옥타브 위). 6↔4번줄은 항상 +2프렛.'},
  interval:{name:'인터벌 (음정)',intro:'두 음 사이의 거리 — 코드·스케일·하모니를 만드는 벽돌.',steps:['기준음에서 목표 음정(장3도·완전5도 등) 위 음을 이름으로','쉬운 음정(3도·5도)부터, 익으면 6·7도·트라이톤','귀로도 들으며 음정 색을 익힌다'],learn:'음과 음 사이의 거리 — 모든 코드·스케일의 원자.',use:'코드 구성음을 계산으로 도출하고, 하모니(3도·6도)를 붙이고, 귀로 음정을 인식한다.',tip:'C에서 장3도 위 = E. 장3도를 쌓으면 메이저의 밝은 소리가 만들어진다.'},
  chord:{name:'코드 폼 (E·A·D)',intro:'E·A·D 폼을 "모양"이 아니라 "줄별 도수"로 이해하고 잡기.',steps:['루트가 몇 번 줄인지 확인 (E=6번, A=5번, D=4번)','한 줄씩 튕기며 도수 낭독 (R-5-8-3-5-R)','한 위치에서 4종 변환 (→m, →maj7, →7, →m7)','정답의 다이어그램으로 운지·도수 확인'],learn:'폼이 "모양"이 아니라 줄별 도수의 집합. 3·7도가 앉는 줄이 폼마다 다르다.',use:'어떤 코드든 지판 세 구역에서 잡고, 좁은 프렛 범위에서 리듬 반주를 한다.',tip:'F(E폼)에서 3번줄을 반음 내리면 Fm. 3도 한 음이 밝기(장↔단)를 바꾼다.'},
@@ -1488,7 +1509,7 @@ function renderFront(key){
   }else if(p[0]==='read'){
     const s=+p[1],f=+p[2];const midi=OPEN_MIDI[s]+f;const name=NOTE_F[midi%12];
     dState={s,f,midi,name};
-    $('dq').innerHTML=`<div style="display:flex;justify-content:center">${staffSVG(midi,name)}</div><small>이 음의 이름과 지판 위치는? (개방 포지션 · 소리 내어)</small>`;
+    $('dq').innerHTML=`<div style="display:flex;justify-content:center">${staffSVG(midi,name)}</div><small>이 음의 이름과, 지판에서 낼 수 있는 모든 위치는? (소리 내어)</small>`;
   }else if(p[0]==='oct'){
     const sSrc=+p[1],ni=+p[2],sTgt=+p[3];const fSrc=(ni-OPEN[sSrc]+24)%12;dState={sSrc,ni,sTgt};
     $('dq').innerHTML=`${sSrc}번줄 <span style="${A}">${NOTE_F[ni]}</span> (${fSrc}프렛)<small>→ ${sTgt}번줄에서 몇 프렛?</small>`;
@@ -1528,8 +1549,12 @@ function revealCard(){
     const s=+p[1],f=+p[2];const ni=(OPEN[s]+f)%12;
     $('dAns').innerHTML=`정답: <b>${NOTE_F[ni]}</b>`;playFret(s,f);
   }else if(p[0]==='read'){
-    const st=dState.s,f=dState.f;
-    $('dAns').innerHTML=`정답: <b>${dState.name}</b> — ${st}번줄 ${f===0?'개방(0프렛)':f+'프렛'}`;playFret(st,f);
+    const locs=pitchLocations(dState.midi);
+    const locTxt=locs.map(([s,f])=>`${s}번줄 ${f===0?'개방':f+'프렛'}`).join(' · ');
+    $('dAns').innerHTML=`정답: <b>${dState.name}</b> — 같은 음 <b>${locs.length}곳</b>: ${locTxt}
+      <div class="muted" style="font-size:11px;margin-top:6px">같은 높이의 음(유니즌) — 점을 누르면 소리로 확인</div>
+      <div style="margin-top:4px">${unisonNeckDiagram(dState.midi)}</div>`;
+    playFret(dState.s,dState.f);
   }else if(p[0]==='oct'){
     const ni=+p[2],sTgt=+p[3];const ft=(ni-OPEN[sTgt]+24)%12;let extra=ft===0?' (개방현, 12프렛도)':'';
     $('dAns').innerHTML=`정답: <b>${sTgt}번줄 ${ft}프렛</b>${extra}`;playFret(sTgt,ft);
