@@ -1725,7 +1725,7 @@ function renderFront(key){
     $('dq').innerHTML=`<span style="${A}">${NOTE_F[k]}조</span> · ${PROGS[pi].name} <span style="font-size:18px;color:var(--ink-2)">(${names})</span><small>${drillOptDefs.prog.sets[si]} · ${drillOptDefs.prog.zones[zi]} 안에서 — 각 코드의 전위를 골라 잡기</small>`;
   }else{
     const root=+p[1],set=drillOptDefs.triad.sets[+p[2]],zone=drillOptDefs.triad.zones[+p[3]],qual=drillOptDefs.triad.quals[+p[4]];dState={root,set,zone,qual};
-    $('dq').innerHTML=`<span style="${A}">${NOTE_F[root]}${qual==='마이너'?'m':''}</span> 트라이어드<small>${set} · ${zone} 안에서 구성</small>`;
+    $('dq').innerHTML=`<span style="${A}">${NOTE_F[root]}${qual==='마이너'?'m':''}</span> 트라이어드<small>${set} · ${zone} 안에서 구성 — 구성음 3개를 떠올려 기타로 잡은 뒤, 정답으로 확인 (10초 목표)</small>`;
   }
 }
 function revealCard(){
@@ -1810,10 +1810,17 @@ function revealCard(){
       ?`<div style="margin-top:10px;text-align:center">${diag}</div>`
       :`<div style="margin-top:8px"><div class="muted" style="font-size:11px;margin-bottom:3px">E·A·D 폼 밖의 코드 — 지판 전체에서 구성음 위치</div>${fullNeckDiagram(root,qual)}</div>`;
     $('dAns').innerHTML=`${pos}구성음: <b>${tones}</b>\n도수: ${degs}${hint?'\n'+hint:''}`+visual;
-  }else{
+  }else{ // triad
     const {root,qual}=dState;const ch=CHORDS[qual];
     const tones=chordTones(root,qual).join(' · ');
-    $('dAns').innerHTML=`구성음: <b>${tones}</b> (${ch.deg.join(' · ')})\n지정 구역에서 찾으세요 — 탐색이 학습입니다`;
+    const si=+p[2],zi=+p[3],min=qual==='마이너';
+    const set=PROG_SETS[si],[lo,hi]=PROG_ZONES[zi];
+    const vs=triadVoicings(root,min,set,lo,hi).sort((a,b)=>a.inv-b.inv);
+    const chObj={root,min,name:NOTE_F[root]+(min?'m':'')};
+    const diagrams=vs.map(v=>`<div style="text-align:center"><div style="font-size:12px" class="muted">${INV_NAME[v.inv].split(' ')[0]}</div>${zoneShapeSVG(set,zi,{ch:chObj,v})}</div>`).join('');
+    $('dAns').innerHTML=`구성음: <b>${tones}</b> (${ch.deg.join(' · ')})
+      <div class="muted" style="font-size:11.5px;margin:6px 0 2px">${vs.length?`이 구역의 형태 ${vs.length}개 — 내가 잡은 것과 비교 (점 클릭 = 소리)`:'이 구역에는 완전한 형태가 없습니다'}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">${diagrams}</div>`;
   }
   const c=srsCard(cur);
   $('g1').innerHTML=ivlLabel(0);
