@@ -869,7 +869,8 @@ let S = {
   srsNewPerDay:20,     // 드릴별 하루 신규 카드 상한
   starred:{},          // ⭐ 모은 카드: key -> true
   custom:{},           // ✍️ 직접 만든 카드: id -> {q,a}
-  stats:{}             // 학습 통계: "날짜:모드" -> {n,a,h,g,e} (총·다시·어려움·보통·쉬움)
+  stats:{},            // 학습 통계: "날짜:모드" -> {n,a,h,g,e} (총·다시·어려움·보통·쉬움)
+  missLog:[]           // 최근 틀린 카드: [{t(ms), k(카드키)}] 최대 50개
 };
 /* ===== 자동 저장 (localStorage) =====
    상태가 바뀔 때마다 이 기기 브라우저에 자동 저장하고, 열 때 자동 복원한다.
@@ -880,7 +881,7 @@ function fillDefaults(){ // 구버전 데이터 하위 호환: 누락 필드 기
   if(!S.metSound)S.metSound='electronic';if(!S.accentHz)S.accentHz=1500;if(!S.weakHz)S.weakHz=1000;
   if(!S.srs)S.srs={};if(!S.srsIntro)S.srsIntro={};if(!S.srsNewPerDay)S.srsNewPerDay=20;
   if(!S.weeksDone)S.weeksDone={};if(!S.critDone)S.critDone={};if(!S.log)S.log=[];
-  if(!S.starred)S.starred={};if(!S.custom)S.custom={};if(!S.stats)S.stats={};
+  if(!S.starred)S.starred={};if(!S.custom)S.custom={};if(!S.stats)S.stats={};if(!S.missLog)S.missLog=[];
 }
 const REV_KEY='guitarLocalRev'; // 마지막 로컬 변경 시각(ms) — 클라우드와 최신본 비교용
 let saveT=null;
@@ -1246,7 +1247,7 @@ const drillOptDefs={
   triad:{sets:['1·2·3번줄','2·3·4번줄','3·4·5번줄'],zones:['1~5프렛','5~9프렛','9~12프렛'],quals:['메이저','마이너']},
   prog:{keys:['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'],progs:['I–V–vi–IV','I–IV–V','ii–V–I','vi–IV–I–V','I–vi–IV–V','캐논'],sets:['1·2·3번줄','2·3·4번줄','3·4·5번줄'],zones:['1~5프렛','5~9프렛','9~12프렛']},
   target:{quals:['메이저','마이너','7','m7','maj7'],targets:['3도','7도']},
-  focus:{srcs:['⭐ 모은 카드','🔥 약점 자동 (다시 3회↑)','✍️ 직접 만든 카드']},
+  focus:{srcs:['⭐ 모은 카드','🔥 틀린 카드 자동 (최근 7일 + 다시 3회↑)','✍️ 직접 만든 카드']},
   interval:{ivs:['단2도','장2도','단3도','장3도','완전4도','트라이톤','완전5도','단6도','장6도','단7도','장7도']},
   dia:{keys:['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'],degrees:['I','ii','iii','IV','V','vi','vii°']},
   shell:{quals:['maj7','7','m7']},
@@ -1673,7 +1674,7 @@ function candidateKeys(){
   }else if(drill==='focus'){ // ⭐ 내 카드: 모은 것 + 약점 자동 + 직접 만든 것
     const set=new Set();
     if(dOpt.focus.src.includes(0))Object.keys(S.starred||{}).forEach(k=>{if(S.starred[k])set.add(k)});
-    if(dOpt.focus.src.includes(1))Object.keys(S.srs||{}).forEach(k=>{if((S.srs[k].lapses||0)>=3)set.add(k)});
+    if(dOpt.focus.src.includes(1))wrongPool().forEach(k=>set.add(k)); // 약점 + 최근 틀림
     if(dOpt.focus.src.includes(2))Object.keys(S.custom||{}).forEach(id=>set.add('custom:'+id));
     return [...set];
   }
@@ -1900,10 +1901,11 @@ function revealCard(){
 window.gradeCard=g=>{
   if(!cur)return;
   const c=srsCard(cur);schedule(c,g,cur);sessDone++;
-  { // 대시보드용 통계 기록 (일별 × 드릴별)
+  { // 대시보드용 통계 기록 (일별 × 드릴별) + 틀린 카드 기록
     const sk=todayNum()+':'+cur.split(':')[0];
     const st=S.stats[sk]||(S.stats[sk]={n:0,a:0,h:0,g:0,e:0});
     st.n++;st[['','a','h','g','e'][g]]++;
+    if(g===1){S.missLog.push({t:Date.now(),k:cur});if(S.missLog.length>50)S.missLog.shift()}
   }
   if(g===1){const pos=Math.min(queue.length,3+Math.floor(Math.random()*3));queue.splice(pos,0,cur)}
   beep(g===1?330:720,.1,1);
@@ -2101,6 +2103,16 @@ function keyLabel(key){ // 카드 키 → 사람이 읽는 설명
   return key;
 }
 function accCls(pct){return pct>=80?'acc-good':pct>=60?'acc-mid':'acc-bad'}
+function wrongPool(){ // "내가 틀린 것": 최근 7일 틀린 카드(최신순) ∪ 다시 3회↑ 약점 카드
+  const cutoff=Date.now()-7*86400000,seen=new Set(),pool=[];
+  [...(S.missLog||[])].reverse().forEach(m=>{
+    if(m.t<cutoff||seen.has(m.k))return;
+    if(m.k.startsWith('custom:')&&!S.custom[m.k.slice(7)])return; // 삭제된 커스텀 제외
+    seen.add(m.k);pool.push(m.k);
+  });
+  Object.keys(S.srs).forEach(k=>{if((S.srs[k].lapses||0)>=3&&!seen.has(k)){seen.add(k);pool.push(k)}});
+  return pool;
+}
 function renderDash(){
   renderStreak(); // 헤더 연속일 칩도 함께 갱신
   const t=todayNum();
@@ -2113,8 +2125,11 @@ function renderDash(){
   }
   const cardsSeen=Object.keys(S.srs).filter(k=>S.srs[k].seen).length;
   const weeksDone=Object.values(S.weeksDone).filter(Boolean).length;
-  const weak=Object.keys(S.srs).filter(k=>(S.srs[k].lapses||0)>=3)
-    .sort((a,b)=>(S.srs[b].lapses||0)-(S.srs[a].lapses||0)).slice(0,10);
+  const pool=wrongPool();const weak=pool.slice(0,10);
+  const dueTotal=Object.keys(S.srs).filter(k=>S.srs[k].seen&&S.srs[k].due<=t).length;
+  const rxToday=(WEEK_RX[S.phase+'-'+S.week]||[]).map(r=>MODE_LABEL[r.mode]).filter((v,i,a)=>a.indexOf(v)===i).join(' → ')||'실기 중심';
+  const starN=Object.keys(S.starred||{}).filter(k=>S.starred[k]).length;
+  const customN=Object.keys(S.custom||{}).length;
   const pct=(ok,n)=>n?Math.round(ok/n*100):null;
   const tile=(v,l)=>`<div class="kpi"><div class="big">${v}</div><div class="muted">${l}</div></div>`;
   // 최근 14일 활동 차트
@@ -2152,14 +2167,14 @@ function renderDash(){
       ${tile(weeksDone+'/17','여정 (주)')}
     </div>
     <div class="dash-cta">
-      <button class="cta primary" onclick="goStudy()"><b>▶ 오늘의 학습 계속</b><span>${wkTitleTxt}</span></button>
-      <button class="cta weak" onclick="goWeak()"><b>🔥 틀린 것만 학습</b><span>다시 3회 이상 약점 카드 ${Object.keys(S.srs).filter(k=>(S.srs[k].lapses||0)>=3).length}장</span></button>
-      <button class="cta star" onclick="goFocus()"><b>⭐ 내 카드 집중 학습</b><span>모은 카드·약점·직접 만든 카드</span></button>
+      <button class="cta primary" onclick="goStudy()"><b>▶ 오늘의 학습 계속</b><span>${wkTitleTxt}<br>오늘 처방: ${rxToday} · 복습 예정 <b>${dueTotal}</b>장</span></button>
+      <button class="cta weak" onclick="goWeak()"><b>🔥 틀린 것만 학습 (${pool.length}장)</b><span>${pool.length?`${keyLabel(pool[0])}${pool.length>1?` <b>외 ${pool.length-1}장</b>`:''}`:'최근 틀린 카드가 없습니다 — 훌륭해요 👏'}</span></button>
+      <button class="cta star" onclick="goFocus()"><b>⭐ 내 카드 집중 학습</b><span>⭐ 모음 <b>${starN}</b> · 🔥 틀림 <b>${pool.length}</b> · ✍️ 직접 <b>${customN}</b></span></button>
     </div>
     <div class="dash-grid">
       <div class="card"><h2>📈 최근 14일 활동</h2><p class="muted" style="margin-bottom:6px">막대 높이=리뷰 수 · 색=정답률(초록 80%↑ · 주황 60%↑ · 빨강 그 미만)</p>${chart}</div>
       <div class="card"><h2>🥋 드릴별 성과</h2>${rows?`<table class="mode-table"><tr><th>드릴</th><th>리뷰</th><th>정답률</th><th>카드</th><th>약점</th></tr>${rows}</table>`:'<p class="muted">아직 기록이 없습니다 — 오늘의 학습을 시작해 보세요.</p>'}</div>
-      <div class="card"><h2>🔥 자주 틀리는 카드 Top ${weak.length||0}</h2>${weak.length?weak.map(k=>`<div class="weak-item"><span><b>${keyLabel(k)}</b></span><span class="weak-badge">다시 ${S.srs[k].lapses}회</span></div>`).join(''):'<p class="muted">약점 카드가 없습니다. 훌륭합니다!</p>'}</div>
+      <div class="card"><h2>🔥 내가 틀린 카드 ${pool.length?`(${pool.length}장 중 ${weak.length})`:''}</h2>${weak.length?weak.map(k=>{const lp=(S.srs[k]||{}).lapses||0;return `<div class="weak-item"><span><b>${keyLabel(k)}</b></span><span class="weak-badge">${lp>=3?`다시 ${lp}회`:'최근 틀림'}</span></div>`}).join(''):'<p class="muted">틀린 카드가 없습니다. 훌륭합니다!</p>'}</div>
       <div class="card"><h2>📓 최근 일지</h2>${S.log.length?S.log.slice(0,4).map(l=>`<div class="weak-item"><span>${l.memo}</span><span class="muted" style="white-space:nowrap">${l.date}</span></div>`).join(''):'<p class="muted">일지가 비어 있습니다.</p>'}</div>
     </div>`;
 }
