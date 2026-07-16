@@ -602,6 +602,20 @@ function spellTone(rootNi,iv,deg){return spellByOffset(rootNi,iv,degLetterOff(de
 function chordTones(rootNi,qual){const ch=CHORDS[qual];return ch.iv.map((iv,i)=>spellTone(rootNi,iv,ch.deg[i]))}
 // 인터벌 드릴용: drillOptDefs.interval.ivs 순서(단2~장7)의 글자 간격
 const IV_LETTER_OFF=[1,1,2,2,3,3,4,5,5,6,6];
+/* 인터벌 드릴의 루트 표기: 답이 겹기호(G♭+단3도=B𝄫 등)가 되는 루트는 ♯ 이명동음으로 출제.
+   실전 관례(G♭m 대신 F♯m)와 같은 이유 — 겹기호 조성은 가독성이 나빠 치환한다. */
+const SHARP_NAME={1:'C♯',3:'D♯',6:'F♯',8:'G♯',10:'A♯'};
+function ivAccOver(rootNi,iv,letterOff,rootLetter){ // 이 표기로 겹기호가 필요한가
+  const L=LETTERS[(LETTERS.indexOf(rootLetter||ROOT_LETTER[rootNi])+letterOff)%7];
+  let acc=((rootNi+iv)%12-LETTER_SEMI[L]+120)%12;if(acc>6)acc-=12;
+  return acc<-1||acc>1;
+}
+function ivRootSpell(r,iv){ // → {name: 문제에 표시할 루트, letter: 스펠링용 글자 강제(null=기본)}
+  const lo=IV_LETTER_OFF[iv];
+  if(ivAccOver(r,iv+1,lo)&&SHARP_NAME[r]&&!ivAccOver(r,iv+1,lo,SHARP_NAME[r][0]))
+    return {name:SHARP_NAME[r],letter:SHARP_NAME[r][0],alt:NOTE_F[r]};
+  return {name:NOTE_F[r],letter:null,alt:null};
+}
 /* ===== 오선보 렌더러 (악보 읽기 드릴) =====
    기타 기보 관례: 실음보다 1옥타브 높게 적는다(높은음자리표). 어떤 음이든 SVG로 즉석 생성. */
 function staffSVG(midi,name){
@@ -1781,7 +1795,8 @@ function renderFront(key){
     $('dq').innerHTML=`<span style="${A}">${NOTE_F[r]}${chordSym(qual)}</span> 의 <span style="${A}">${tgt===0?'3도':'7도'}</span> 음은?<small>음 이름 말하기</small>`;
   }else if(p[0]==='interval'){
     const r=+p[1],iv=+p[2];
-    $('dq').innerHTML=`<span style="${A}">${NOTE_F[r]}</span> 에서 <span style="${A}">${drillOptDefs.interval.ivs[iv]}</span> 음은?<small>음 이름 말하기</small>`;
+    const rt=ivRootSpell(r,iv);
+    $('dq').innerHTML=`<span style="${A}">${rt.name}</span>${rt.alt?`<span class="muted" style="font-size:45%">(=${rt.alt})</span>`:''} 에서 <span style="${A}">${drillOptDefs.interval.ivs[iv]}</span> 음은?<small>음 이름 말하기</small>`;
   }else if(p[0]==='dia'){
     const key=+p[1],deg=+p[2];
     $('dq').innerHTML=`<span style="${A}">${NOTE_F[key]}조</span> · <span style="${A}">${DIA_ROMAN[deg]}</span> 코드는?<small>코드 이름 말하기</small>`;
@@ -1848,6 +1863,7 @@ function revealCard(){
     $('dAns').innerHTML=`정답: <b>${spellTone(r,iv,deg)}</b> (${deg})`;playPitch((r+iv)%12);
   }else if(p[0]==='interval'){
     const r=+p[1],iv=+p[2],note=(r+iv+1)%12;
+    const rt=ivRootSpell(r,iv); // 겹기호 회피용 루트 표기 (문제와 동일)
     // 이 음정(반음 수 + 도수 철자 일치)을 구성음으로 가진 코드들 — 루트 r 기준
     const s=iv+1,lo=IV_LETTER_OFF[iv],matches=[];
     CHORD_ORDER.forEach(q=>{if(q==='메이저 스케일'||q==='마이너 펜타토닉')return;
@@ -1863,15 +1879,16 @@ function revealCard(){
     if(pick.length){
       const rows=pick.map(m=>{
         const sym=m.q==='파워(5)'?'5':chordSym(m.q);
-        const tones=chordTones(r,m.q).map((t,j)=>{
+        const tones=m.ch.iv.map((civ,j)=>{
+          const t=spellByOffset(r,civ,degLetterOff(m.ch.deg[j]),rt.letter);
           const name=j===m.di?`<b style="color:var(--accent)">${t}</b>`:t;
           return `${name}<span class="muted" style="font-size:11px">(${m.ch.deg[j]})</span>`});
-        return `<div style="margin-top:3px"><b>${NOTE_F[r]}${sym}</b> — ${tones.join(' · ')}</div>`}).join('');
-      extra=`<div style="font-size:13px;margin-top:10px;white-space:normal;line-height:1.6"><div class="muted" style="font-size:11.5px">이 음정이 사는 코드 (${NOTE_F[r]} 루트):</div>${rows}</div>`;
+        return `<div style="margin-top:3px"><b>${rt.name}${sym}</b> — ${tones.join(' · ')}</div>`}).join('');
+      extra=`<div style="font-size:13px;margin-top:10px;white-space:normal;line-height:1.6"><div class="muted" style="font-size:11.5px">이 음정이 사는 코드 (${rt.name} 루트):</div>${rows}</div>`;
     }else if(IV_NOTE[iv]){
       extra=`<div class="muted" style="font-size:12px;margin-top:10px;white-space:normal;line-height:1.6">${IV_NOTE[iv]}</div>`;
     }
-    $('dAns').innerHTML=`정답: <b>${spellByOffset(r,iv+1,IV_LETTER_OFF[iv])}</b>${extra}`;playPitch(note);
+    $('dAns').innerHTML=`정답: <b>${spellByOffset(r,iv+1,IV_LETTER_OFF[iv],rt.letter)}</b>${extra}`;playPitch(note);
   }else if(p[0]==='dia'){
     const key=+p[1],deg=+p[2];const note=(key+MAJ_SCALE[deg])%12;
     $('dAns').innerHTML=`정답: <b>${spellByOffset(key,MAJ_SCALE[deg],deg)}${DIA_SUF[deg]}</b> (${DIA_ROMAN[deg]} · ${DIA_FUNC[deg]})`;playPitch(note);
@@ -2144,7 +2161,7 @@ function keyLabel(key){ // 카드 키 → 사람이 읽는 설명
     case 'rnote':return `역방향 · ${p[1]}번줄 ${p[2]}프렛`;
     case 'read':return `악보 읽기 · ${NOTE_F[(OPEN[+p[1]]+ +p[2])%12]} (${p[1]}번줄 ${p[2]}프렛)`;
     case 'oct':return `옥타브 · ${NOTE_F[+p[2]]} ${p[1]}→${p[3]}번줄`;
-    case 'interval':return `인터벌 · ${NOTE_F[+p[1]]} + ${D.interval.ivs[+p[2]]}`;
+    case 'interval':return `인터벌 · ${ivRootSpell(+p[1],+p[2]).name} + ${D.interval.ivs[+p[2]]}`;
     case 'chord':return `코드 폼 · ${NOTE_F[+p[1]]}${chordSym(D.chord.quals[+p[3]])} ${D.chord.forms[+p[2]]}`;
     case 'xform':return `한 음 조작 · ${NOTE_F[+p[1]]} ${XFORM_PAIRS[+p[2]].base}→${XFORM_PAIRS[+p[2]].tgt}`;
     case 'shell':return `셸 · ${NOTE_F[+p[1]]}${SHELL_Q[+p[2]]}`;
