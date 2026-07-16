@@ -1700,9 +1700,9 @@ function candidateKeys(){
 }
 
 /* ---- 세션 큐 ---- */
-let queue=[], cur=null, sessDone=0;
+let queue=[], cur=null, sessDone=0, freeMode=false; // freeMode: 무한 반복 연습 (SRS 일정 영향 없음)
 function buildQueue(ahead){
-  clearTimeout(dTimer);
+  clearTimeout(dTimer);freeMode=false;
   const t=todayNum();const cands=candidateKeys();
   const due=[],neu=[];
   cands.forEach(k=>{const c=S.srs[k];if(c&&c.seen){if(c.due<=t)due.push(k)}else neu.push(k)});
@@ -1726,12 +1726,17 @@ function updStar(){
   b.hidden=!cur;
   if(cur){const on=!!(S.starred&&S.starred[cur]);b.textContent=on?'★':'☆';b.classList.toggle('on',on)}
 }
+window.startFree=()=>{ // 오늘 몫과 무관하게 현재 필터의 카드를 무한 반복 — 손 연습용
+  freeMode=true;queue=shuffle(candidateKeys());sessDone=0;updSrsStat();nextCard();
+};
 function nextCard(){
   clearTimeout(dTimer);$('dAns').innerHTML='';$('dGrades').hidden=true;$('dPre').hidden=false;$('dBar').style.width='0%';
   cur=queue.shift()||null;
+  if(!cur&&freeMode){queue=shuffle(candidateKeys());cur=queue.shift()||null} // 자유 연습은 바닥나면 다시 섞어 계속
   updStar();
   if(!cur){renderDone();return}
   renderFront(cur);
+  if(freeMode)$('dq').insertAdjacentHTML('beforeend','<div class="muted" style="font-size:11px;margin-top:8px">🔁 자유 연습 중 — 채점은 기록에만 남고 복습 일정은 그대로 (틀리면 다시 나옴)</div>');
   const auto=[0,3,2][dOpt.note.a];
   if(drill==='note'&&auto){animBar(auto);dTimer=setTimeout(revealCard,auto*1000)}
 }
@@ -1743,10 +1748,10 @@ function renderDone(){
   const {unseenN}=counts();
   if(unseenN>0){ // 카드는 남았지만 이 드릴의 오늘 신규 한도에 도달
     $('dq').innerHTML=`🌙 <span style="color:var(--accent)">이 드릴의 오늘 신규 한도(${S.srsNewPerDay||20}장) 도달</span><small>남은 신규 ${unseenN}장은 내일 이어집니다 — 몰아치지 않는 것도 설계입니다</small>`;
-    $('dAns').innerHTML=`<button class="btn sm" onclick="buildQueue(true)">＋ 그래도 더 학습 (당겨오기)</button>`;
+    $('dAns').innerHTML=`<button class="btn sm" onclick="buildQueue(true)">＋ 그래도 더 학습 (당겨오기)</button> <button class="btn sm" onclick="startFree()">🔁 자유 연습 (무한 반복)</button>`;
   }else{
-    $('dq').innerHTML=`🎉 <span style="color:var(--good)">이 드릴의 오늘 카드 완료!</span><small>모르는 것을 그만큼 줄였습니다. 다른 스텝 드릴로 넘어가세요.</small>`;
-    $('dAns').innerHTML=`<button class="btn sm" onclick="buildQueue(true)">＋ 미리 학습 (예정 카드 당겨오기)</button>`;
+    $('dq').innerHTML=`🎉 <span style="color:var(--good)">이 드릴의 오늘 카드 완료!</span><small>암기는 여기까지가 오늘 몫 — 손 연습을 더 하려면 자유 연습으로 이어가세요.</small>`;
+    $('dAns').innerHTML=`<button class="btn sm" onclick="startFree()">🔁 자유 연습 (무한 반복)</button> <button class="btn sm" onclick="buildQueue(true)">＋ 미리 학습 (예정 카드 당겨오기)</button>`;
   }
   $('dPre').hidden=true;$('dGrades').hidden=true;
 }
@@ -1910,15 +1915,23 @@ function revealCard(){
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">${diagrams}</div>`;
   }
   const c=srsCard(cur);
-  $('g1').innerHTML=ivlLabel(0);
-  $('g2').innerHTML=ivlLabel(previewIvl(c,2));
-  $('g3').innerHTML=ivlLabel(previewIvl(c,3));
-  $('g4').innerHTML=ivlLabel(previewIvl(c,4));
+  if(freeMode){
+    $('g1').innerHTML='다시 나옴';$('g2').innerHTML=$('g3').innerHTML=$('g4').innerHTML='기록만';
+  }else{
+    $('g1').innerHTML=ivlLabel(0);
+    $('g2').innerHTML=ivlLabel(previewIvl(c,2));
+    $('g3').innerHTML=ivlLabel(previewIvl(c,3));
+    $('g4').innerHTML=ivlLabel(previewIvl(c,4));
+  }
   $('dPre').hidden=true;$('dGrades').hidden=false;
 }
 window.gradeCard=g=>{
   if(!cur)return;
-  const c=srsCard(cur);schedule(c,g,cur);sessDone++;
+  const c=srsCard(cur);
+  if(freeMode){ // 자유 연습: 성공은 일정에 손대지 않고, 실패만 진짜 정보로 반영 (lapse + 오늘 재복습)
+    if(g===1&&c.seen){c.lapses++;c.reps=0;c.ef=Math.max(1.3,c.ef-0.2);c.ivl=0;c.due=todayNum()}
+  }else schedule(c,g,cur);
+  sessDone++;
   { // 대시보드용 통계 기록 (일별 × 드릴별) + 틀린 카드 기록
     const sk=todayNum()+':'+cur.split(':')[0];
     const st=S.stats[sk]||(S.stats[sk]={n:0,a:0,h:0,g:0,e:0});
