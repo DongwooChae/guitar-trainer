@@ -222,6 +222,19 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .mg-dot{width:9px;height:9px;border-radius:99px}
 .d-r{background:var(--deg-r)} .d-5{background:var(--deg-5)} .d-x{background:var(--deg-x)} .d-7{background:var(--deg-7)}
 .mg-lock{font-size:10.5px;font-weight:600;color:var(--ink-3);border:1px solid var(--border);border-radius:99px;padding:1px 7px}
+/* ⭐ 내 카드 집중 학습 */
+.focus-deck{display:block;width:100%;margin:10px 0 0;padding:10px 14px;border:1px dashed var(--warn);border-radius:10px;background:transparent;color:var(--warn);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-align:left}
+.focus-deck:hover{background:var(--surface)}
+.focus-deck #focusCnt{color:var(--ink)}
+.drill-main{position:relative}
+.starbtn{position:absolute;right:2px;margin-top:8px;z-index:5;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:var(--surface);color:var(--warn);font-size:20px;cursor:pointer;line-height:1}
+.starbtn.on{background:var(--warn);color:#fff;border-color:var(--warn)}
+.cus-list{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+.cus-item{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--ink-2);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px}
+.cus-item b{color:var(--ink)}
+.cus-del{color:var(--bad);cursor:pointer;flex:0 0 auto}
+.cus-form{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.cus-form input{flex:1;min-width:140px}
 /* 우측 도구: 메트로놈·소리 2단 압축 */
 .tool-duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 @media(max-width:1180px){.tool-duo{grid-template-columns:1fr}}
@@ -320,6 +333,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <h2>🎯 드릴</h2>
     <div id="rxBar"></div>
     <div class="drill-main">
+    <button class="focus-deck" id="focusBtn">⭐ 내 카드 집중 학습 <span id="focusCnt">0</span>장 — 모은 카드·약점·직접 만든 카드만</button>
     <details class="free-modes">
       <summary>🎛️ 자유 연습 · 전체 모드 (원할 때만 펼치기)</summary>
       <div id="drillPick">
@@ -342,6 +356,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       </div>
     </details>
     <div id="drillOpts"></div>
+    <button class="starbtn" id="dStar" title="이 카드를 내 카드로 모으기" hidden>☆</button>
     <div class="q" id="dq">—</div>
     <div class="pbar"><div id="dBar" style="width:0%"></div></div>
     <div class="ans" id="dAns"></div>
@@ -701,8 +716,10 @@ let S = {
   accentHz:1500,       // 강박 높이 Hz
   weakHz:1000,         // 약박 높이 Hz
   srs:{},              // 카드별 SM-2 상태: key -> {ef,ivl,reps,lapses,due,seen}
-  srsIntro:{},         // 날짜(day number) -> 그날 도입한 신규 카드 수
-  srsNewPerDay:20      // 하루 신규 카드 상한
+  srsIntro:{},         // "날짜:모드" -> 그날 도입한 신규 카드 수
+  srsNewPerDay:20,     // 드릴별 하루 신규 카드 상한
+  starred:{},          // ⭐ 모은 카드: key -> true
+  custom:{}            // ✍️ 직접 만든 카드: id -> {q,a}
 };
 /* ===== 자동 저장 (localStorage) =====
    상태가 바뀔 때마다 이 기기 브라우저에 자동 저장하고, 열 때 자동 복원한다.
@@ -713,6 +730,7 @@ function fillDefaults(){ // 구버전 데이터 하위 호환: 누락 필드 기
   if(!S.metSound)S.metSound='electronic';if(!S.accentHz)S.accentHz=1500;if(!S.weakHz)S.weakHz=1000;
   if(!S.srs)S.srs={};if(!S.srsIntro)S.srsIntro={};if(!S.srsNewPerDay)S.srsNewPerDay=20;
   if(!S.weeksDone)S.weeksDone={};if(!S.critDone)S.critDone={};if(!S.log)S.log=[];
+  if(!S.starred)S.starred={};if(!S.custom)S.custom={};
 }
 const REV_KEY='guitarLocalRev'; // 마지막 로컬 변경 시각(ms) — 클라우드와 최신본 비교용
 let saveT=null;
@@ -1069,6 +1087,7 @@ const drillOptDefs={
   xform:{pairs:['메이저→sus4','메이저→sus2','메이저→add9','메이저→aug','마이너→dim','메이저→마이너','메이저→7','메이저→maj7']},
   triad:{sets:['1·2·3번줄','2·3·4번줄','3·4·5번줄'],zones:['1~5프렛','5~9프렛','9~12프렛'],quals:['메이저','마이너']},
   target:{quals:['메이저','마이너','7','m7','maj7'],targets:['3도','7도']},
+  focus:{srcs:['⭐ 모은 카드','🔥 약점 자동 (다시 3회↑)','✍️ 직접 만든 카드']},
   interval:{ivs:['단2도','장2도','단3도','장3도','완전4도','트라이톤','완전5도','단6도','장6도','단7도','장7도']},
   dia:{keys:['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'],degrees:['I','ii','iii','IV','V','vi','vii°']},
   shell:{quals:['maj7','7','m7']},
@@ -1139,7 +1158,7 @@ const TQ=['메이저','마이너','7','m7','maj7']; // target 모드 콜리티
 const chordSym=q=>q==='메이저'?'':q==='마이너'?'m':q;
 function degIv(qual,want){const ch=CHORDS[qual];const i=ch.deg.findIndex(d=>d.includes(want));return i<0?null:ch.iv[i]}
 let dOpt={note:{s:2,n:0,a:0},rnote:{s:0,fr:0},read:{g:0,n:0},oct:{pair:[0],n:1},chord:{f:[0,1],q:[0,1,2,3,4]},xform:{pair:[0,1]},triad:{set:[0,1,2],zone:[0,1,2],q:[0,1]},target:{q:[0,1,2],t:[0]},
-  interval:{iv:[2,3,4,6]},dia:{key:[0,7,2,5],deg:[0,1,2,3,4,5,6]},shell:{q:[0,1,2]},slash:{b:[0,1]}};
+  interval:{iv:[2,3,4,6]},dia:{key:[0,7,2,5],deg:[0,1,2,3,4,5,6]},shell:{q:[0,1,2]},slash:{b:[0,1]},focus:{src:[0,1,2]}};
 document.querySelectorAll('#drillPick .tag').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('#drillPick .tag').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');drill=t.dataset.d;renderDrillOpts();buildQueue();
@@ -1147,7 +1166,7 @@ document.querySelectorAll('#drillPick .tag').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('#rxBar .tp-step').forEach(c=>c.classList.remove('on'));
   const g=$('rxGoal');if(g)g.innerHTML='🎼 자유 연습 · '+MODE_LABEL[drill];
 });
-const MODE_LABEL={note:'음 찾기',rnote:'역방향',read:'악보 읽기',oct:'옥타브',interval:'인터벌',chord:'코드 폼',xform:'한 음 조작',shell:'셸',slash:'분수',triad:'트라이어드',target:'타겟 톤',dia:'다이어토닉'};
+const MODE_LABEL={note:'음 찾기',rnote:'역방향',read:'악보 읽기',oct:'옥타브',interval:'인터벌',chord:'코드 폼',xform:'한 음 조작',shell:'셸',slash:'분수',triad:'트라이어드',target:'타겟 톤',dia:'다이어토닉',focus:'내 카드',custom:'내 카드'};
 // 페이즈별 학습 목표·개요 (커리큘럼 '왜' 섹션 기반)
 const PHASE_OVERVIEW=[
  {goal:'지판의 음 이름을 몸에 새긴다 (6·5번줄 자연음)',desc:'블록(상대적 모양)에 "키 이름"을 붙이는 절대 기준점. 이게 없으면 이후 모든 단계가 "어느 키인지 모른 채 치는" 상태가 된다. 6·5번줄만 외우면 1번줄=6번줄 복사, 4번줄=6번줄+2프렛으로 유도된다.'},
@@ -1161,6 +1180,7 @@ const PHASE_OVERVIEW=[
 const DRILL_GUIDE={
  note:{name:'음 찾기 (음이름 → 위치)',intro:'지판의 각 칸이 무슨 음인지 즉시 아는 것 — 모든 이론의 출발점.',steps:['프렛 점 위치의 자연음(앵커)부터 외운다 (0=E,3=G,5=A,7=B,8=C,10=D,12=E)','사이 음은 "B-C·E-F만 반음(1칸)" 규칙으로 채운다','6번줄 → 5번줄, 한 줄씩 확실히','반응을 3초 → 2초 → 1초로 줄인다'],learn:'지판의 절대 좌표. 상대적 모양(블록)에 키 이름을 붙이는 기준점.',use:'파워코드·바레코드의 루트를 즉시 찾아 어떤 키로든 이동하고, 악보의 음을 지판에서 바로 짚는다.',tip:'6번줄 8프렛 = C. 이 한 점을 알면 C 파워코드·C 바레코드가 모두 거기서 나온다.'},
  rnote:{name:'역방향 (위치 → 음이름)',intro:'이름→위치의 반대 방향. 짚은 자리가 무슨 음인지 바로 튀어나오게.',steps:['아무 프렛이나 짚고 그 음 이름을 즉답','자연음 프렛부터, 익으면 반음 포함','6번줄이 되면 5번줄로 확장'],learn:'음이름→위치의 반대 신경 경로. 양방향이 되어야 진짜 아는 것.',use:'연주 중 지금 짚은 음이 무슨 음인지 인지 → 즉흥·편곡에서 방향 감각을 만든다.',tip:'5번줄 3프렛을 짚었다 → "C". 솔로 중 내 손이 어느 음을 누르는지 알게 된다.'},
+ focus:{name:'내 카드 (집중 학습)',intro:'로드맵 순서와 별개로, 더 봐야 할 카드만 골라 모은 나만의 덱.',steps:['드릴 중 어렵거나 중요한 카드는 오른쪽 위 ☆로 모은다','"다시"를 3번 이상 누른 카드는 약점으로 자동 수집된다','드릴로 못 담는 내용은 직접 카드로 만든다 (앞면/뒷면)','이 덱은 예정일을 무시하고 지금 바로 전부 복습(cram) — 채점은 평소처럼 기억 일정에 반영'],learn:'Anki의 핵심 사용법 — 시스템이 주는 순서에 더해, 내가 아는 약점을 직접 관리하는 법.',use:'공연·합주 전 벼락 점검, 유독 안 외워지는 항목 집중 공략, 레슨에서 배운 내용 카드화.',tip:'약점 카드는 극복되면(간격이 길어지면) 자연히 이 덱에서 빠지도록 두고, ⭐는 수시로 정리하세요.'},
  read:{name:'악보 읽기 (오선 → 지판)',intro:'오선지의 음을 보고 이름과 위치를 즉답 — Leavitt 교본의 첫 번째 목표.',steps:['높은 음역(음이 오선 안에 앉아 읽기 쉬움)부터','중간 음역 → 낮은 음역(아래 덧줄)으로 확장','자연음이 익으면 임시표(♭·♯) 포함','정답에서 같은 음의 모든 지판 위치(유니즌)를 확인 — 12프렛까지','운지가 아니라 음을 읽는다 — 이름을 소리 내며'],learn:'악보라는 공용어. 기타 기보는 실음+1옥타브 관례, 그리고 한 음이 지판 여러 곳에 산다는 것.',use:'밴드 차트·리얼북·새 곡을 악보로 바로 연주(초견). 기타 밖의 음악 세계와 연결된다.',tip:'아래 덧줄 3개 밑의 음 = 6번줄 개방 E. 덧줄은 매번 세지 말고 앵커로 외운다.'},
  oct:{name:'옥타브 셔틀 (같은 음의 다른 자리)',intro:'같은 음이 지판 여러 곳에 있다 — 그 지도를 손에 넣기.',steps:['한 음을 정하고 6→5→4번줄에서 같은 음을 찾는다','6↔4번줄은 "+2프렛" 규칙을 눈으로 확인','12음 전체로 넓힌다'],learn:'지판 위 같은 피치의 여러 위치(옥타브·유니슨 형태).',use:'옥타브 주법, 보이싱을 다른 구역으로 옮기기, 멜로디를 다른 옥타브로 재배치.',tip:'6번줄 5프렛 A → 4번줄 7프렛에도 같은 A(옥타브 위). 6↔4번줄은 항상 +2프렛.'},
  interval:{name:'인터벌 (음정)',intro:'두 음 사이의 거리 — 코드·스케일·하모니를 만드는 벽돌.',steps:['기준음에서 목표 음정(장3도·완전5도 등) 위 음을 이름으로','쉬운 음정(3도·5도)부터, 익으면 6·7도·트라이톤','귀로도 들으며 음정 색을 익힌다'],learn:'음과 음 사이의 거리 — 모든 코드·스케일의 원자.',use:'코드 구성음을 계산으로 도출하고, 하모니(3도·6도)를 붙이고, 귀로 음정을 인식한다.',tip:'C에서 장3도 위 = E. 장3도를 쌓으면 메이저의 밝은 소리가 만들어진다.'},
@@ -1377,9 +1397,30 @@ function renderDrillOpts(){
     h+='<h3>코드 종류 (복수)</h3>'+optMulti('shell','q',D.shell.quals);
   }else if(drill==='slash'){
     h+='<h3>베이스 위치 (복수)</h3>'+optMulti('slash','b',D.slash.bass);
+  }else if(drill==='focus'){
+    h+='<h3>카드 출처 (복수)</h3>'+optMulti('focus','src',D.focus.srcs);
+    h+='<h3>✍️ 직접 카드 만들기</h3><div class="cus-form">'+
+       '<input type="text" id="cusQ" placeholder="앞면 (질문 — 예: Am 펜타 1번 박스 루트는 몇 프렛?)">'+
+       '<input type="text" id="cusA" placeholder="뒷면 (답 — 예: 6번줄 5프렛 A)">'+
+       '<button class="btn sm primary" onclick="addCustomCard()">추가</button></div>'+
+       '<div class="cus-list">'+Object.keys(S.custom||{}).map(id=>
+         `<div class="cus-item"><span><b>${S.custom[id].q}</b><br><span class="muted">${S.custom[id].a}</span></span><span class="cus-del" onclick="delCustomCard('${id}')">✕</span></div>`).join('')+'</div>';
   }
   box.innerHTML=h;
   renderDrillGuide(drill);
+}
+window.addCustomCard=()=>{
+  const q=$('cusQ').value.trim(),a=$('cusA').value.trim();
+  if(!q||!a){alert('앞면과 뒷면을 모두 입력하세요.');return}
+  S.custom['c'+Date.now()]={q,a};saveS();renderDrillOpts();buildQueue();updFocusCnt();
+};
+window.delCustomCard=id=>{
+  delete S.custom[id];delete S.srs['custom:'+id];delete S.starred['custom:'+id];
+  saveS();renderDrillOpts();buildQueue();updFocusCnt();
+};
+function updFocusCnt(){
+  const prev=drill;drill='focus';const n=candidateKeys().length;drill=prev;
+  const el=$('focusCnt');if(el)el.textContent=n;
 }
 window.setOpt=(mode,k,v)=>{dOpt[mode][k]=v;renderDrillOpts();buildQueue()};
 window.setN=(k,v)=>{dOpt.note[k]=v;renderDrillOpts();buildQueue()};
@@ -1453,6 +1494,12 @@ function candidateKeys(){
     for(let r=0;r<12;r++)dOpt.shell.q.forEach(q=>keys.push('shell:'+r+':'+q));
   }else if(drill==='slash'){
     for(let r=0;r<12;r++)dOpt.slash.b.forEach(b=>keys.push('slash:'+r+':'+b));
+  }else if(drill==='focus'){ // ⭐ 내 카드: 모은 것 + 약점 자동 + 직접 만든 것
+    const set=new Set();
+    if(dOpt.focus.src.includes(0))Object.keys(S.starred||{}).forEach(k=>{if(S.starred[k])set.add(k)});
+    if(dOpt.focus.src.includes(1))Object.keys(S.srs||{}).forEach(k=>{if((S.srs[k].lapses||0)>=3)set.add(k)});
+    if(dOpt.focus.src.includes(2))Object.keys(S.custom||{}).forEach(id=>set.add('custom:'+id));
+    return [...set];
   }
   return keys;
 }
@@ -1465,7 +1512,7 @@ function buildQueue(ahead){
   const due=[],neu=[];
   cands.forEach(k=>{const c=S.srs[k];if(c&&c.seen){if(c.due<=t)due.push(k)}else neu.push(k)});
   due.sort((a,b)=>S.srs[a].due-S.srs[b].due);shuffle(neu);
-  if(ahead){
+  if(ahead||drill==='focus'){ // 집중 학습(내 카드)은 예정일 무시하고 전부 (cram)
     const future=cands.filter(k=>{const c=S.srs[k];return c&&c.seen&&c.due>t}).sort((a,b)=>S.srs[a].due-S.srs[b].due);
     queue=due.concat(neu).concat(future).slice(0,40);
   }else{
@@ -1479,15 +1526,25 @@ function counts(){
   return {dueN,newN:Math.min(newN,newRemaining(drill)),unseenN:newN};
 }
 function updSrsStat(){const {dueN,newN}=counts();$('cNew').textContent=newN;$('cDue').textContent=dueN;$('cDone').textContent=sessDone}
+function updStar(){
+  const b=$('dStar');if(!b)return;
+  b.hidden=!cur;
+  if(cur){const on=!!(S.starred&&S.starred[cur]);b.textContent=on?'★':'☆';b.classList.toggle('on',on)}
+}
 function nextCard(){
   clearTimeout(dTimer);$('dAns').innerHTML='';$('dGrades').hidden=true;$('dPre').hidden=false;$('dBar').style.width='0%';
   cur=queue.shift()||null;
+  updStar();
   if(!cur){renderDone();return}
   renderFront(cur);
   const auto=[0,3,2][dOpt.note.a];
   if(drill==='note'&&auto){animBar(auto);dTimer=setTimeout(revealCard,auto*1000)}
 }
 function renderDone(){
+  if(drill==='focus'&&candidateKeys().length===0){
+    $('dq').innerHTML=`⭐ <span style="color:var(--warn)">아직 모은 카드가 없습니다</span><small>드릴 중 오른쪽 위 ☆ 버튼으로 모으거나, 아래에서 직접 카드를 만들어 보세요.</small>`;
+    $('dAns').innerHTML='';$('dPre').hidden=true;$('dGrades').hidden=true;return;
+  }
   const {unseenN}=counts();
   if(unseenN>0){ // 카드는 남았지만 이 드릴의 오늘 신규 한도에 도달
     $('dq').innerHTML=`🌙 <span style="color:var(--accent)">이 드릴의 오늘 신규 한도(${S.srsNewPerDay||20}장) 도달</span><small>남은 신규 ${unseenN}장은 내일 이어집니다 — 몰아치지 않는 것도 설계입니다</small>`;
@@ -1534,6 +1591,9 @@ function renderFront(key){
   }else if(p[0]==='slash'){
     const r=+p[1],b=+p[2];
     $('dq').innerHTML=`<span style="${A}">${NOTE_F[r]}</span> 코드 · 베이스 <span style="${A}">${drillOptDefs.slash.bass[b]}</span><small>분수코드 표기·베이스음은?</small>`;
+  }else if(p[0]==='custom'){
+    const c=S.custom[key.slice(7)];
+    $('dq').innerHTML=c?`<span style="font-size:24px;line-height:1.5">${c.q}</span><small>✍️ 내가 만든 카드</small>`:'삭제된 카드';
   }else{
     const root=+p[1],set=drillOptDefs.triad.sets[+p[2]],zone=drillOptDefs.triad.zones[+p[3]],qual=drillOptDefs.triad.quals[+p[4]];dState={root,set,zone,qual};
     $('dq').innerHTML=`<span style="${A}">${NOTE_F[root]}${qual==='마이너'?'m':''}</span> 트라이어드<small>${set} · ${zone} 안에서 구성</small>`;
@@ -1596,6 +1656,9 @@ function revealCard(){
   }else if(p[0]==='slash'){
     const r=+p[1],b=+p[2],bn=(r+SLASH_SEMI[b])%12;
     $('dAns').innerHTML=`정답: <b>${NOTE_F[r]}/${NOTE_F[bn]}</b> — 베이스 ${NOTE_F[bn]} (${drillOptDefs.slash.bass[b]})`;playPitch(bn);
+  }else if(p[0]==='custom'){
+    const c=S.custom[cur.slice(7)];
+    $('dAns').innerHTML=c?`정답: <b>${c.a}</b>`:'삭제된 카드입니다 — 건너뛰기를 누르세요';
   }else if(p[0]==='chord'){
     const {root,form,qual}=dState;const ch=CHORDS[qual];
     const tones=chordTones(root,qual).join(' · ');const degs=ch.deg.join(' · ');
@@ -1624,12 +1687,24 @@ window.gradeCard=g=>{
   const c=srsCard(cur);schedule(c,g,cur);sessDone++;
   if(g===1){const pos=Math.min(queue.length,3+Math.floor(Math.random()*3));queue.splice(pos,0,cur)}
   beep(g===1?330:720,.1,1);
-  updSrsStat();nextCard();saveS();
+  updSrsStat();nextCard();saveS();updFocusCnt();
 };
 function skipCard(){if(cur)queue.push(cur);nextCard()}
 $('dReveal').onclick=revealCard;
 $('dSkip').onclick=skipCard;
 document.querySelectorAll('#dGrades .gbtn').forEach(b=>b.onclick=()=>gradeCard(+b.dataset.g));
+$('dStar').onclick=()=>{
+  if(!cur)return;
+  if(S.starred[cur])delete S.starred[cur];else S.starred[cur]=true;
+  updStar();updFocusCnt();saveS();
+};
+$('focusBtn').onclick=()=>{
+  drill='focus';
+  document.querySelectorAll('#drillPick .tag').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('#rxBar .tp-step').forEach(c=>c.classList.remove('on'));
+  renderDrillOpts();buildQueue();updFocusCnt();
+  const g=$('rxGoal');if(g)g.innerHTML='⭐ 집중 학습 · 내가 모은 카드만 (예정일 무시)';
+};
 
 /* ================= 지판 ================= */
 function initFB(){
@@ -1783,7 +1858,7 @@ $('fileImport').onchange=e=>{
 };
 
 /* ================= init ================= */
-initSession();renderDrillOpts();applyWeekRx(S.phase,S.week);initFB();drawFB();buildNotePad();renderProg();initAuth();
+initSession();renderDrillOpts();applyWeekRx(S.phase,S.week);initFB();drawFB();buildNotePad();renderProg();initAuth();updFocusCnt();
 // 메트로놈 컨트롤
 $('mSlider').oninput=function(){setBpm(+this.value)};
 $('mMinus').onclick=()=>setBpm(S.bpm-1);
