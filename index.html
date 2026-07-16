@@ -1781,7 +1781,7 @@ function renderFront(key){
     $('dq').innerHTML=`<span style="${A}">${NOTE_F[r]}${chordSym(qual)}</span> 의 <span style="${A}">${tgt===0?'3도':'7도'}</span> 음은?<small>음 이름 말하기</small>`;
   }else if(p[0]==='interval'){
     const r=+p[1],iv=+p[2];
-    $('dq').innerHTML=`<span style="${A}">${NOTE_F[r]}</span> 에서 <span style="${A}">${drillOptDefs.interval.ivs[iv]}</span> 위는?<small>음 이름 말하기</small>`;
+    $('dq').innerHTML=`<span style="${A}">${NOTE_F[r]}</span> 에서 <span style="${A}">${drillOptDefs.interval.ivs[iv]}</span> 음은?<small>음 이름 말하기</small>`;
   }else if(p[0]==='dia'){
     const key=+p[1],deg=+p[2];
     $('dq').innerHTML=`<span style="${A}">${NOTE_F[key]}조</span> · <span style="${A}">${DIA_ROMAN[deg]}</span> 코드는?<small>코드 이름 말하기</small>`;
@@ -1848,7 +1848,30 @@ function revealCard(){
     $('dAns').innerHTML=`정답: <b>${spellTone(r,iv,deg)}</b> (${deg})`;playPitch((r+iv)%12);
   }else if(p[0]==='interval'){
     const r=+p[1],iv=+p[2],note=(r+iv+1)%12;
-    $('dAns').innerHTML=`정답: <b>${spellByOffset(r,iv+1,IV_LETTER_OFF[iv])}</b>`;playPitch(note);
+    // 이 음정(반음 수 + 도수 철자 일치)을 구성음으로 가진 코드들 — 루트 r 기준
+    const s=iv+1,lo=IV_LETTER_OFF[iv],matches=[];
+    CHORD_ORDER.forEach(q=>{if(q==='메이저 스케일'||q==='마이너 펜타토닉')return;
+      const ch=CHORDS[q];const di=ch.iv.findIndex((v,j)=>v===s&&degLetterOff(ch.deg[j])===lo);
+      if(di>=0)matches.push({q,di,ch})});
+    let pick=matches.slice(0,3);
+    const pw=matches.find(m=>m.q==='파워(5)');if(pw&&!pick.includes(pw))pick[2]=pw;
+    const IV_NOTE={0:'단2도는 코드 구성음으로는 드문 거리 — 반음 접근음과 ♭9 텐션의 재료입니다',
+      5:'트라이톤은 dim의 R–♭5, 그리고 7코드 내부의 3↔♭7 거리(이명동음) — 해소를 부르는 긴장입니다',
+      7:'단6도는 aug의 ♯5와 같은 소리(이명동음) — ♭13 텐션이며, 장3도를 뒤집은 거리입니다',
+      8:'장6도는 6코드(R·3·5·6)와 13 텐션의 재료 — 단3도를 뒤집은 거리입니다'};
+    let extra='';
+    if(pick.length){
+      const rows=pick.map(m=>{
+        const sym=m.q==='파워(5)'?'5':chordSym(m.q);
+        const tones=chordTones(r,m.q).map((t,j)=>{
+          const name=j===m.di?`<b style="color:var(--accent)">${t}</b>`:t;
+          return `${name}<span class="muted" style="font-size:11px">(${m.ch.deg[j]})</span>`});
+        return `<div style="margin-top:3px"><b>${NOTE_F[r]}${sym}</b> — ${tones.join(' · ')}</div>`}).join('');
+      extra=`<div style="font-size:13px;margin-top:10px;white-space:normal;line-height:1.6"><div class="muted" style="font-size:11.5px">이 음정이 사는 코드 (${NOTE_F[r]} 루트):</div>${rows}</div>`;
+    }else if(IV_NOTE[iv]){
+      extra=`<div class="muted" style="font-size:12px;margin-top:10px;white-space:normal;line-height:1.6">${IV_NOTE[iv]}</div>`;
+    }
+    $('dAns').innerHTML=`정답: <b>${spellByOffset(r,iv+1,IV_LETTER_OFF[iv])}</b>${extra}`;playPitch(note);
   }else if(p[0]==='dia'){
     const key=+p[1],deg=+p[2];const note=(key+MAJ_SCALE[deg])%12;
     $('dAns').innerHTML=`정답: <b>${spellByOffset(key,MAJ_SCALE[deg],deg)}${DIA_SUF[deg]}</b> (${DIA_ROMAN[deg]} · ${DIA_FUNC[deg]})`;playPitch(note);
