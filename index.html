@@ -577,8 +577,8 @@ const CHORD_ORDER=['메이저','마이너','7','maj7','m7','sus4','sus2','add9',
 const LETTERS=['C','D','E','F','G','A','B'];
 const LETTER_SEMI={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 const ROOT_LETTER=['C','D','D','E','E','F','G','G','A','A','B','B']; // NOTE_F 인덱스별 글자
-function spellByOffset(rootNi,iv,letterOff){ // letterOff: 도수의 글자 간격 (3도=2, 5도=4, 7도=6…)
-  const li=(LETTERS.indexOf(ROOT_LETTER[rootNi])+letterOff)%7;
+function spellByOffset(rootNi,iv,letterOff,rootLetter){ // letterOff: 도수의 글자 간격 / rootLetter: 루트 글자 강제(샵 계열 코드명용)
+  const li=(LETTERS.indexOf(rootLetter||ROOT_LETTER[rootNi])+letterOff)%7;
   const L=LETTERS[li];
   const target=(rootNi+iv)%12;
   let acc=(target-LETTER_SEMI[L]+120)%12; if(acc>6)acc-=12;
@@ -725,7 +725,7 @@ window.showProgOnNeck=i=>{
   document.querySelectorAll('.prog-pick').forEach((el,ix)=>el.classList.toggle('sel',ix===i));
   const cap=pk.v?`<b>${pk.ch.name}</b> · ${INV_NAME[pk.v.inv]} — 전체 지판에서의 위치`:pk.ch.name;
   const el=$('progNeck');
-  if(el)el.innerHTML=`<div class="muted" style="font-size:11.5px;margin:10px 0 2px;text-align:center">${cap}</div>`+progNeckSVG(pk,pp.si,pp.zi);
+  if(el)el.innerHTML=`<div style="font-size:13px;margin:6px 0 2px;text-align:center;color:var(--ink-2)">${cap}</div>`+progNeckSVG(pk,pp.si,pp.zi);
 };
 function zoneShapeSVG(set,zi,pick){ // 구역만 잘라 보여주는 미니 운지 다이어그램
   const [lo,hi]=PROG_ZONES[zi],cols=hi-lo+1;
@@ -1843,7 +1843,7 @@ function revealCard(){
     const {k,pi,si,zi}=dState;
     const picks=pickProgVoicings(k,pi,si,zi);
     window._progPicks={picks,si,zi}; // ▶ 진행 듣기 · 지판 연동용
-    const tonesOf=ch=>(ch.min?[0,3,7]:[0,4,7]).map((iv,ix)=>spellByOffset(ch.root,iv,[0,2,4][ix])).join('·');
+    const tonesOf=ch=>(ch.min?[0,3,7]:[0,4,7]).map((iv,ix)=>spellByOffset(ch.root,iv,[0,2,4][ix],ch.name[0])).join('·');
     const items=picks.map((pk,i)=>{
       if(!pk.v)return `<div class="prog-pick" data-i="${i}" style="text-align:center"><b>${pk.ch.name}</b><br><span class="muted">이 구역엔 없음</span></div>`;
       return `<div class="prog-pick" data-i="${i}" style="text-align:center" title="호버/클릭 → 아래 전체 지판에 표시">
@@ -1856,12 +1856,12 @@ function revealCard(){
     // 기능 흐름: C(I·집) → G(V·갈망) → …
     const ROM=['I','ii','iii','IV','V','vi','vii°'];
     const flow=PROGS[pi].degs.map((d,i)=>`<b>${picks[i].ch.name}</b><span class="muted">(${ROM[d]}·${PROG_FUNC[d]})</span>`).join(' → ');
-    $('dAns').innerHTML=`<div style="font-size:13px;line-height:1.6;margin-bottom:2px">${flow}</div>
-      <div class="muted" style="font-size:12px;line-height:1.6;margin:4px auto 8px;max-width:640px">💡 ${PROG_WHY[pi]}</div>
-      <div class="muted" style="font-size:11.5px;margin-bottom:4px">최소 이동 배치 — 전환당 이동 합계 ${totalMove}칸 · 최저음 도수를 소리 내어 말하기</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">${items}</div>
+    $('dAns').innerHTML=`<div style="white-space:normal"><div style="font-size:16px;line-height:1.45;font-weight:600">${flow}</div>
+      <div style="font-size:13.5px;line-height:1.5;margin:5px auto 6px;max-width:680px;color:var(--ink-2)">💡 ${PROG_WHY[pi]}</div>
+      <div style="font-size:13px;color:var(--warn);font-weight:600;margin-bottom:2px">최소 이동 배치 — 전환당 이동 합계 ${totalMove}칸 · 최저음 도수를 소리 내어 말하기</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">${items}</div>
       <div id="progNeck"></div>
-      <div style="text-align:center;margin-top:8px"><button class="btn sm primary" onclick="playProgPicks()">▶ 진행 듣기</button></div>`;
+      <div style="text-align:center;margin-top:6px"><button class="btn sm primary" onclick="playProgPicks()">▶ 진행 듣기</button></div></div>`;
     $('dAns').querySelectorAll('.prog-pick').forEach(el=>{
       el.addEventListener('mouseenter',()=>showProgOnNeck(+el.dataset.i));
       el.addEventListener('click',()=>showProgOnNeck(+el.dataset.i));
