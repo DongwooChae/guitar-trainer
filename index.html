@@ -384,7 +384,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         </div>
         <div class="mode-group">
           <div class="mg-head"><span class="mg-dot d-x"></span>③ 트라이어드·구역 <span class="mg-lock">Phase 2↑</span></div>
-          <div class="optgrid"><span class="tag" data-d="triad">트라이어드</span><span class="tag" data-d="slash">분수</span></div>
+          <div class="optgrid"><span class="tag" data-d="triad">트라이어드</span><span class="tag" data-d="prog">코드 진행</span><span class="tag" data-d="slash">분수</span></div>
         </div>
         <div class="mode-group">
           <div class="mg-head"><span class="mg-dot d-7"></span>④ 솔로·화성 <span class="mg-lock">Phase 4↑</span></div>
@@ -634,6 +634,75 @@ function unisonNeckDiagram(midi){
     const cx=f===0?x0-13:x0+(f-0.5)*fw, cy=y0+(s-1)*sh;
     g+=`<g style="cursor:pointer" onclick="playFret(${s},${f})"><circle cx="${cx}" cy="${cy}" r="10" fill="${acc}"/><text x="${cx}" y="${cy+3.6}" font-size="9.5" font-weight="700" text-anchor="middle" fill="#fff">${f}</text></g>`;
   });
+  return g+'</svg>';
+}
+/* ===== 코드 진행 드릴 (구역 제한 + 최소 이동 보이스 리딩) ===== */
+const PROGS=[
+  {name:'I–V–vi–IV',degs:[0,4,5,3]},        // 팝의 왕도
+  {name:'I–IV–V',degs:[0,3,4]},              // 뼈대
+  {name:'ii–V–I',degs:[1,4,0]},              // 재즈의 심장
+  {name:'vi–IV–I–V',degs:[5,3,0,4]},         // 감성 팝 (Am–F–C–G형)
+  {name:'I–vi–IV–V',degs:[0,5,3,4]},         // 50s 두왑
+  {name:'캐논',degs:[0,4,5,2,3,0,3,4]}       // I–V–vi–iii–IV–I–IV–V
+];
+const PROG_SETS=[[3,2,1],[4,3,2],[5,4,3]];   // 낮은 줄→높은 줄
+const PROG_ZONES=[[1,5],[5,9],[9,12]];
+function progChord(key,deg){ // 스케일 도수 → {root, min(마이너 여부), name}
+  const root=(key+MAJ_SCALE[deg])%12,min=DIA_SUF[deg]==='m';
+  return {root,min,name:spellByOffset(key,MAJ_SCALE[deg],deg)+(min?'m':'')};
+}
+function triadVoicings(root,min,set,lo,hi){ // 스트링셋·구역 안의 클로즈 트라이어드 전부
+  const ivs=min?[0,3,7]:[0,4,7];
+  const classes=ivs.map(iv=>(root+iv)%12);
+  const out=[];
+  for(let f1=lo;f1<=hi;f1++)for(let f2=lo;f2<=hi;f2++)for(let f3=lo;f3<=hi;f3++){
+    const p=[OPEN_MIDI[set[0]]+f1,OPEN_MIDI[set[1]]+f2,OPEN_MIDI[set[2]]+f3];
+    const cls=p.map(x=>x%12);
+    if(new Set(cls).size!==3)continue;
+    if(!classes.every(c=>cls.includes(c)))continue;
+    if(!(p[0]<p[1]&&p[1]<p[2])||p[2]-p[0]>=12)continue; // 클로즈 보이싱
+    const bassIv=(cls[0]-root+12)%12;
+    out.push({frets:[f1,f2,f3],inv:bassIv===0?0:bassIv===ivs[1]?1:2});
+  }
+  return out;
+}
+function pickProgVoicings(key,pi,si,zi){ // 진행 전체를 최소 이동으로 배치 (그리디)
+  const set=PROG_SETS[si],[lo,hi]=PROG_ZONES[zi];
+  let prev=null;const picks=[];
+  for(const deg of PROGS[pi].degs){
+    const ch=progChord(key,deg);
+    const vs=triadVoicings(ch.root,ch.min,set,lo,hi);
+    if(!vs.length){picks.push({ch,v:null});prev=null;continue}
+    let best=null,bd=1e9;
+    for(const v of vs){
+      const d=prev?v.frets.reduce((a,f,i)=>a+Math.abs(f-prev.frets[i]),0)
+                  :Math.abs((v.frets[0]+v.frets[2])/2-(lo+hi)/2); // 첫 코드는 구역 중앙 선호
+      if(d<bd){bd=d;best=v}
+    }
+    picks.push({ch,v:best});prev=best;
+  }
+  return picks;
+}
+const INV_NAME=['기본형 (R 베이스)','1전위 (3도 베이스)','2전위 (5도 베이스)'];
+function zoneShapeSVG(set,zi,pick){ // 구역만 잘라 보여주는 미니 운지 다이어그램
+  const [lo,hi]=PROG_ZONES[zi],cols=hi-lo+1;
+  const cw=26,rh=20,x0=24,y0=10,W=x0+cols*cw+8,H=y0+2*rh+26;
+  const bd=getCss('--ink-3'),border=getCss('--border');
+  // 표시 순서: 높은 줄이 위 (실제 지판 시각화와 동일)
+  const rows=[...set].sort((a,b)=>a-b); // 예: [1,2,3]
+  let g=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
+  for(let c=0;c<=cols;c++){const x=x0+c*cw;g+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0+2*rh}" stroke="${border}" stroke-width="1"/>`}
+  rows.forEach((s,r)=>{const y=y0+r*rh;g+=`<line x1="${x0}" y1="${y}" x2="${x0+cols*cw}" y2="${y}" stroke="${bd}" stroke-width="1"/><text x="${x0-16}" y="${y+3.5}" font-size="8.5" fill="${bd}">${s}번</text>`});
+  for(let c=0;c<cols;c++)g+=`<text x="${x0+c*cw+cw/2}" y="${y0+2*rh+13}" font-size="8.5" text-anchor="middle" fill="${bd}">${lo+c}</text>`;
+  if(pick&&pick.v){
+    const ivs=pick.ch.min?[0,3,7]:[0,4,7],degL=pick.ch.min?['R','♭3','5']:['R','3','5'];
+    set.forEach((s,i)=>{
+      const f=pick.v.frets[i],r=rows.indexOf(s);
+      const ni=(OPEN[s]+f)%12,di=ivs.findIndex(iv=>(pick.ch.root+iv)%12===ni),dl=degL[di]||'';
+      const cx=x0+(f-lo)*cw+cw/2,cy=y0+r*rh;
+      g+=`<g style="cursor:pointer" onclick="playFret(${s},${f})"><circle cx="${cx}" cy="${cy}" r="8" fill="${DEGCOLOR(dl)}"/><text x="${cx}" y="${cy+3}" font-size="7.5" font-weight="700" text-anchor="middle" fill="#fff">${dl}</text></g>`;
+    });
+  }
   return g+'</svg>';
 }
 const DEGCOLOR = d=>{
@@ -1124,6 +1193,7 @@ const drillOptDefs={
   chord:{forms:['E폼','A폼','D폼','폼 자유'],quals:['메이저','마이너','7','maj7','m7','sus4','sus2','add9','dim','aug']},
   xform:{pairs:['메이저→sus4','메이저→sus2','메이저→add9','메이저→aug','마이너→dim','메이저→마이너','메이저→7','메이저→maj7']},
   triad:{sets:['1·2·3번줄','2·3·4번줄','3·4·5번줄'],zones:['1~5프렛','5~9프렛','9~12프렛'],quals:['메이저','마이너']},
+  prog:{keys:['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'],progs:['I–V–vi–IV','I–IV–V','ii–V–I','vi–IV–I–V','I–vi–IV–V','캐논'],sets:['1·2·3번줄','2·3·4번줄','3·4·5번줄'],zones:['1~5프렛','5~9프렛','9~12프렛']},
   target:{quals:['메이저','마이너','7','m7','maj7'],targets:['3도','7도']},
   focus:{srcs:['⭐ 모은 카드','🔥 약점 자동 (다시 3회↑)','✍️ 직접 만든 카드']},
   interval:{ivs:['단2도','장2도','단3도','장3도','완전4도','트라이톤','완전5도','단6도','장6도','단7도','장7도']},
@@ -1196,7 +1266,8 @@ const TQ=['메이저','마이너','7','m7','maj7']; // target 모드 콜리티
 const chordSym=q=>q==='메이저'?'':q==='마이너'?'m':q;
 function degIv(qual,want){const ch=CHORDS[qual];const i=ch.deg.findIndex(d=>d.includes(want));return i<0?null:ch.iv[i]}
 let dOpt={note:{s:2,n:0,a:0},rnote:{s:0,fr:0},read:{g:0,n:0},oct:{pair:[0],n:1},chord:{f:[0,1],q:[0,1,2,3,4]},xform:{pair:[0,1]},triad:{set:[0,1,2],zone:[0,1,2],q:[0,1]},target:{q:[0,1,2],t:[0]},
-  interval:{iv:[2,3,4,6]},dia:{key:[0,7,2,5],deg:[0,1,2,3,4,5,6]},shell:{q:[0,1,2]},slash:{b:[0,1]},focus:{src:[0,1,2]}};
+  interval:{iv:[2,3,4,6]},dia:{key:[0,7,2,5],deg:[0,1,2,3,4,5,6]},shell:{q:[0,1,2]},slash:{b:[0,1]},focus:{src:[0,1,2]},
+  prog:{key:[0,7],pr:[0,3],set:[0],zone:[1]}};
 document.querySelectorAll('#drillPick .tag').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('#drillPick .tag').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');drill=t.dataset.d;renderDrillOpts();buildQueue();
@@ -1204,7 +1275,7 @@ document.querySelectorAll('#drillPick .tag').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('#rxBar .tp-step').forEach(c=>c.classList.remove('on'));
   const g=$('rxGoal');if(g)g.innerHTML='🎼 자유 연습 · '+MODE_LABEL[drill];
 });
-const MODE_LABEL={note:'음 찾기',rnote:'역방향',read:'악보 읽기',oct:'옥타브',interval:'인터벌',chord:'코드 폼',xform:'한 음 조작',shell:'셸',slash:'분수',triad:'트라이어드',target:'타겟 톤',dia:'다이어토닉',focus:'내 카드',custom:'내 카드'};
+const MODE_LABEL={note:'음 찾기',rnote:'역방향',read:'악보 읽기',oct:'옥타브',interval:'인터벌',chord:'코드 폼',xform:'한 음 조작',shell:'셸',slash:'분수',triad:'트라이어드',target:'타겟 톤',dia:'다이어토닉',focus:'내 카드',custom:'내 카드',prog:'코드 진행'};
 // 페이즈별 학습 목표·개요 (커리큘럼 '왜' 섹션 기반)
 const PHASE_OVERVIEW=[
  {goal:'지판의 음 이름을 몸에 새긴다 (6·5번줄 자연음)',desc:'블록(상대적 모양)에 "키 이름"을 붙이는 절대 기준점. 이게 없으면 이후 모든 단계가 "어느 키인지 모른 채 치는" 상태가 된다. 6·5번줄만 외우면 1번줄=6번줄 복사, 4번줄=6번줄+2프렛으로 유도된다.'},
@@ -1226,6 +1297,7 @@ const DRILL_GUIDE={
  xform:{name:'한 음 조작 (변형 호출)',intro:'아는 코드에서 한 음만 바꿔 sus·add·dim·aug를 만들기.',steps:['아는 코드에서 한 음만 이동한다','sus=3도 대체, add9=9도 추가, dim/aug=5도 변형','빠진 음 → 새 음의 도수를 말하며'],learn:'확장 코드는 새 코드가 아니라 한 음의 조작. 어느 도수가 어디로 가는지.',use:'긴장-해소(sus→메이저), 착색(add9), 경과(dim)를 실시간 호출로 변형한다.',tip:'C의 3도(E)를 4도(F)로 올리면 Csus4 — 긴장. 다시 E로 내리면 해소된다.'},
  shell:{name:'셸 보이싱 (R·3·7)',intro:'7th 코드의 색을 정하는 최소음 R·3·7만 남긴 보이싱.',steps:['7th 코드에서 5도·중복음을 버리고 R·3·7만 잡는다','나아가 3·7(가이드 톤)만으로도 색이 남는지 확인','maj7↔7↔m7의 3·7 차이를 비교'],learn:'코드의 색을 정하는 최소음 — 3도가 성격, 7도가 색. 재즈·발라드 보이싱의 핵심.',use:'손이 편한 2~3음 보이싱, 베이스와 겹치지 않는 반주, 보이스 리딩의 뼈대.',tip:'Cmaj7 = C·E·B. 밴드에선 베이스가 C를 치므로 3·7(E·B)만 쳐도 코드 색이 산다.'},
  slash:{name:'분수 코드 (다른 베이스)',intro:'코드 위에 다른 베이스음을 얹은 분수코드(C/E).',steps:['코드 위에 다른 베이스음을 얹는다 (3도·5도)','C/E, C/G처럼 표기와 베이스음을 확인','진행에서 최저음의 흐름을 듣는다'],learn:'최저음이 코드의 성격과 진행의 흐름을 만든다.',use:'하행 베이스 라인(C→C/B→Am→Am/G)으로 코드를 부드럽게 잇는다.',tip:'C→C/B→Am이면 베이스가 C→B→A로 계단처럼 내려가 진행이 매끄러워진다.'},
+ prog:{name:'코드 진행 (구역 제한 + 최소 이동)',intro:'자주 쓰는 진행을 정해진 구역 안에서 — 트라이어드 전위 선택의 실전.',steps:['진행의 각 코드가 무엇인지 확인 (로마숫자 → 코드 이름)','구역 안에서 첫 코드의 전위를 잡는다','다음 코드는 손이 가장 적게 움직이는 전위로','최저음의 도수를 소리 내며 (R/3도/5도 베이스)','정답의 배치와 내 배치를 비교 — 이동 합계가 더 적었나?'],learn:'같은 진행도 구역마다 다른 전위 조합이 된다는 것. 최소 이동이 곧 보이스 리딩.',use:'실전 반주의 핵심 기술 — 지판 한 구역에서 어떤 진행이든 소화하고, 다른 악기와 음역을 나눈다.',tip:'C–F–G를 1·2·3번줄 5~9프렛에서: C 1전위(9-8-8) → F 2전위(5-6-5) → G 2전위(7-8-7) — 여섯 줄 점프 없이 이웃끼리.'},
  triad:{name:'트라이어드 (3음 블록)',intro:'코드를 3음 블록으로 줄여 지판 어디서든 잡기.',steps:['스트링셋에서 3형태(기본형·1전위·2전위)를 직접 탐색','전위 사다리: 낮은→높은 위치로 연달아, 최저음 도수 낭독','구역(프렛 범위)을 제한해 그 안에서만 진행'],learn:'코드를 3음 이동 블록으로. 지판을 좁은 구역 단위로 자유롭게 쓰는 능력.',use:'하이 코드 반주, 좁은 구역 연주, 아르페지오·솔로의 뼈대.',tip:'C(C·E·G)를 1·2·3번줄에서 세 모양(전위)으로. 구역을 옮겨도 같은 C 코드다.'},
  target:{name:'타겟 톤 (3도·7도 착지)',intro:'솔로에서 코드가 바뀌는 순간 노릴 음(3도·7도).',steps:['각 코드의 3도(먼저), 7도 음을 즉답','코드가 바뀌는 첫 박에 새 코드의 3도로 착지','7도 착지, 3↔7 번갈아 착지로 확장'],learn:'코드가 바뀔 때 어느 음을 노리면 "코드를 그리는" 솔로가 되는지.',use:'코드 진행을 따라가는 솔로·필. 강박에 반드시 구성음(특히 3도)을 둔다.',tip:'Am→Dm에서 Dm으로 바뀌는 첫 박에 F(Dm의 3도)에 착지하면 코드가 들리는 솔로가 된다.'},
  dia:{name:'다이어토닉 (조성·화음 기능)',intro:'한 조(key)에 사는 7개 코드와 각자의 역할(기능).',steps:['조(key)를 정하고 I~vii°를 순서대로','V(딸림)·IV(버금딸림)·ii 같은 자주 쓰는 기능부터','같은 코드가 다른 조에서 몇 번인지도 생각'],learn:'한 조에 어떤 코드가 사는지, 각 코드의 기능(으뜸·딸림·버금딸림).',use:'곡의 코드 진행을 조성으로 이해하고, 진행을 예측·작곡하고, 다른 조로 이조한다.',tip:'C조 = C·Dm·Em·F·G·Am·B°. G(V)는 C(I)로 돌아가려는 힘(딸림)을 가진다.'}
@@ -1311,12 +1383,14 @@ const WEEK_RX={
         {mode:'read',opt:{g:3,n:0},seg:'warm',goal:'악보 읽기 — 전체 자연음',cue:'전 음역 완성'},
         {mode:'triad',opt:{set:[0],zone:[0,1,2],q:[0]},seg:'main',goal:'구성 10초',cue:'탐색 과정이 학습의 본체'}],
  '2-1':[{mode:'chord',opt:{f:[0,1,2],q:[0,1]},seg:'warm',goal:'폼 복습',cue:'폼 유지'},
-        {mode:'triad',opt:{set:[0],zone:[1],q:[0,1]},seg:'main',goal:'지정구역 10초',cue:'구역 안에서 전위 선택'}],
+        {mode:'triad',opt:{set:[0],zone:[1],q:[0,1]},seg:'main',goal:'지정구역 10초',cue:'구역 안에서 전위 선택'},
+        {mode:'prog',opt:{key:[0],pr:[1],set:[0],zone:[1]},seg:'app',goal:'C–F–G를 5~9프렛에서',cue:'각 코드의 전위를 골라'}],
  '2-2':[{mode:'chord',opt:{f:[0,1,2],q:[0,1]},seg:'warm',goal:'폼 복습',cue:'폼 유지'},
         {mode:'triad',opt:{set:[1],zone:[0,1,2],q:[0,1]},seg:'main',goal:'지정구역 10초',cue:'G–B 경계 접힘 확인'}],
  '2-3':[{mode:'triad',opt:{set:[0,1],zone:[0,1,2],q:[0,1]},seg:'warm',goal:'두 스트링셋 사다리',cue:'복습으로 몸 풀기'},
         {mode:'triad',opt:{set:[2],zone:[0,1,2],q:[0,1]},seg:'main',goal:'지정구역 10초',cue:'3·4·5번줄'},
-        {mode:'triad',opt:{set:[0,1,2],zone:[0],q:[0,1]},seg:'app',goal:'지정구역 10초 (Phase2 통과)',cue:'5프렛 감옥 — 어느 구역이든'}],
+        {mode:'triad',opt:{set:[0,1,2],zone:[0],q:[0,1]},seg:'app',goal:'지정구역 10초 (Phase2 통과)',cue:'5프렛 감옥 — 어느 구역이든'},
+        {mode:'prog',opt:{key:[0,9],pr:[3],set:[0],zone:[0,1,2]},seg:'app',goal:'5프렛 감옥 — 진행 통째로',cue:'Am–F–C–G를 각 구역에서'}],
  '3-0':[{mode:'triad',opt:{set:[0,1,2],zone:[0,1,2],q:[0,1]},seg:'warm',goal:'구역 복습',cue:'무게중심 유지'},
         {mode:'read',opt:{g:3,n:1},seg:'warm',goal:'악보 읽기 — 임시표 포함',cue:'♭·♯까지 완성'},
         {mode:'xform',opt:{pair:[0,1]},seg:'main',goal:'변형 3초',cue:'3도의 대체 (sus)'},
@@ -1334,6 +1408,7 @@ const WEEK_RX={
  '4-3':[{mode:'target',opt:{q:[0,1,2,3],t:[0]},seg:'main',goal:'첫 박 3도 착지',cue:'코드가 바뀌면 3도부터'},
         {mode:'target',opt:{q:[2,4],t:[0,1]},seg:'app',goal:'3↔7 착지 (Phase4 통과)',cue:'7도 착지 버전'}],
  '5-0':[{mode:'triad',opt:{set:[0,1,2],zone:[0,1,2],q:[0,1]},seg:'warm',goal:'구역 복습',cue:'무게중심 유지'},
+        {mode:'prog',opt:{key:[0,7,9],pr:[0,2,5],set:[0,1],zone:[0,1,2]},seg:'main',goal:'최소 이동 게임',cue:'손가락 이동 합계가 최소가 되는 전위'},
         {mode:'slash',opt:{b:[0,1]},seg:'main',goal:'베이스 라인 설계',cue:'분수코드로 최저음 계단 (C→C/B→Am)'},
         {mode:'shell',opt:{q:[0,1,2]},seg:'main',goal:'maj7·7·m7의 3·7',cue:'3도가 성격, 7도가 색 (보이스 리딩 뼈대)'},
         {mode:'xform',opt:{pair:[0,2,5]},seg:'app',goal:'리하모나이즈',cue:'한 음 바꿔 색 실험'}]
@@ -1424,6 +1499,11 @@ function renderDrillOpts(){
     h+='<h3>스트링셋</h3>'+optMulti('triad','set',D.triad.sets);
     h+='<h3>구역</h3>'+optMulti('triad','zone',D.triad.zones);
     h+='<h3>종류</h3>'+optMulti('triad','q',D.triad.quals);
+  }else if(drill==='prog'){
+    h+='<h3>조성 (복수)</h3>'+optMulti('prog','key',D.prog.keys);
+    h+='<h3>진행 (복수)</h3>'+optMulti('prog','pr',D.prog.progs);
+    h+='<h3>스트링셋</h3>'+optMulti('prog','set',D.prog.sets);
+    h+='<h3>구역</h3>'+optMulti('prog','zone',D.prog.zones);
   }else if(drill==='target'){
     h+='<h3>코드 종류 (복수)</h3>'+optMulti('target','q',D.target.quals);
     h+='<h3>타겟 도수 (복수)</h3>'+optMulti('target','t',D.target.targets);
@@ -1533,6 +1613,12 @@ function candidateKeys(){
     for(let r=0;r<12;r++)dOpt.shell.q.forEach(q=>keys.push('shell:'+r+':'+q));
   }else if(drill==='slash'){
     for(let r=0;r<12;r++)dOpt.slash.b.forEach(b=>keys.push('slash:'+r+':'+b));
+  }else if(drill==='prog'){
+    dOpt.prog.key.forEach(k=>dOpt.prog.pr.forEach(p=>dOpt.prog.set.forEach(s=>dOpt.prog.zone.forEach(z=>{
+      const ok=PROGS[p].degs.every(deg=>{const c=progChord(k,deg);
+        return triadVoicings(c.root,c.min,PROG_SETS[s],PROG_ZONES[z][0],PROG_ZONES[z][1]).length>0});
+      if(ok)keys.push('prog:'+k+':'+p+':'+s+':'+z); // 모든 코드가 잡히는 조합만 카드로
+    }))));
   }else if(drill==='focus'){ // ⭐ 내 카드: 모은 것 + 약점 자동 + 직접 만든 것
     const set=new Set();
     if(dOpt.focus.src.includes(0))Object.keys(S.starred||{}).forEach(k=>{if(S.starred[k])set.add(k)});
@@ -1633,6 +1719,10 @@ function renderFront(key){
   }else if(p[0]==='custom'){
     const c=S.custom[key.slice(7)];
     $('dq').innerHTML=c?`<span style="font-size:24px;line-height:1.5">${c.q}</span><small>✍️ 내가 만든 카드</small>`:'삭제된 카드';
+  }else if(p[0]==='prog'){
+    const k=+p[1],pi=+p[2],si=+p[3],zi=+p[4];dState={k,pi,si,zi};
+    const names=PROGS[pi].degs.map(d=>progChord(k,d).name).join(' – ');
+    $('dq').innerHTML=`<span style="${A}">${NOTE_F[k]}조</span> · ${PROGS[pi].name} <span style="font-size:18px;color:var(--ink-2)">(${names})</span><small>${drillOptDefs.prog.sets[si]} · ${drillOptDefs.prog.zones[zi]} 안에서 — 각 코드의 전위를 골라 잡기</small>`;
   }else{
     const root=+p[1],set=drillOptDefs.triad.sets[+p[2]],zone=drillOptDefs.triad.zones[+p[3]],qual=drillOptDefs.triad.quals[+p[4]];dState={root,set,zone,qual};
     $('dq').innerHTML=`<span style="${A}">${NOTE_F[root]}${qual==='마이너'?'m':''}</span> 트라이어드<small>${set} · ${zone} 안에서 구성</small>`;
@@ -1698,6 +1788,17 @@ function revealCard(){
   }else if(p[0]==='custom'){
     const c=S.custom[cur.slice(7)];
     $('dAns').innerHTML=c?`정답: <b>${c.a}</b>`:'삭제된 카드입니다 — 건너뛰기를 누르세요';
+  }else if(p[0]==='prog'){
+    const {k,pi,si,zi}=dState;
+    const picks=pickProgVoicings(k,pi,si,zi);
+    const items=picks.map(pk=>{
+      if(!pk.v)return `<div style="text-align:center"><b>${pk.ch.name}</b><br><span class="muted">이 구역엔 없음</span></div>`;
+      return `<div style="text-align:center"><div style="font-size:13px"><b>${pk.ch.name}</b> <span class="muted">· ${INV_NAME[pk.v.inv].split(' ')[0]}</span></div>${zoneShapeSVG(PROG_SETS[si],zi,pk)}</div>`;
+    }).join('');
+    const moves=picks.slice(1).map((pk,i)=>pk.v&&picks[i].v?pk.v.frets.reduce((a,f,j)=>a+Math.abs(f-picks[i].v.frets[j]),0):null).filter(x=>x!=null);
+    const totalMove=moves.reduce((a,b)=>a+b,0);
+    $('dAns').innerHTML=`<div class="muted" style="font-size:11.5px;margin-bottom:4px">최소 이동 배치 — 전환당 이동 합계 ${totalMove}칸 · 최저음 도수를 소리 내어 말하기</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">${items}</div>`;
   }else if(p[0]==='chord'){
     const {root,form,qual}=dState;const ch=CHORDS[qual];
     const tones=chordTones(root,qual).join(' · ');const degs=ch.deg.join(' · ');
